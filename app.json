@@ -29,6 +29,12 @@
     "web": {
       "name": "Tapdeck — Binder preview"
     },
-    "icon": "./assets/tapdeck-logo-icon.png"
+    "icon": "./assets/tapdeck-logo-icon.png",
+    "extra": {
+      "eas": {
+        "projectId": "9db8a196-fd04-41b9-81d9-4a2498823b9b"
+      }
+    },
+    "owner": "azzazzos-team"
   }
 }

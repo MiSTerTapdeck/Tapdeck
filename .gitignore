@@ -50,3 +50,6 @@ playwright-report/
 /android/build/
 /android/app/build/
 /android/app/debug.keystore
+
+/.agents/
+skills-lock.json
