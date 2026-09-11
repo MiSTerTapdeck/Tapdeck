@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Tapdeck",
+    "slug": "tapdeck",
+    "version": "0.1.0",
+    "scheme": "tapdeck",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F4EDDF",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "Tapdeck connects to your MiSTer on your home network."
+      }
+    },
+    "android": {
+      "predictiveBackGestureEnabled": true,
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "android.permission.INTERNET"
+      ],
+      "package": "com.anonymous.tapdeck",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/tapdeck-logo-icon.png",
+        "backgroundColor": "#E8DCC7"
+      },
+      "backgroundColor": "#F6EBD7"
+    },
+    "web": {
+      "name": "Tapdeck — Binder preview"
+    },
+    "icon": "./assets/tapdeck-logo-icon.png"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "name": "tapdeck",
+  "version": "0.1.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@expo-google-fonts/bodoni-moda": "^0.4.2",
+    "@expo-google-fonts/dm-sans": "^0.4.2",
+    "@expo/metro-runtime": "~57.0.15",
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "expo": "~57.0.21",
+    "expo-asset": "^57.0.16",
+    "expo-font": "~57.0.3",
+    "expo-gl": "^57.0.2",
+    "expo-haptics": "~57.0.2",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-dom": "^19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-svg": "^15.15.4",
+    "react-native-web": "^0.21.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^22.20.2",
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/library.test.ts",
+    "test:ui": "playwright test",
+    "export": "expo export --platform all --no-bytecode",
+    "samples": "node scripts/fetch-samples.mjs",
+    "artwork-bridge": "node scripts/artwork-bridge.mjs"
+  },
+  "private": true
+}
