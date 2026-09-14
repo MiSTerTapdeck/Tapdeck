@@ -4,7 +4,7 @@ import type {ImageSourcePropType} from 'react-native';
 type RemoteSystem={id:string;name:string;category?:string};
 type RemoteGame={mediaId?:number;name:string;path:string;zapScript:string;system:RemoteSystem};
 type SearchResult={results?:RemoteGame[];pagination?:{hasNextPage?:boolean;nextCursor?:string}};
-type RpcResponse<T>={result?:T;error?:{message?:string}};
+type RpcResponse<T>={id?:string|number;result?:T;error?:{message?:string}};
 
 export function normaliseMiSTerUrl(value:string){
  const raw=value.trim().replace(/\/+$/,'');
@@ -18,11 +18,12 @@ function socketUrl(base:string){return base.replace(/^http:/i,'ws:').replace(/^h
 function rpc<T>(base:string,method:string,params?:unknown):Promise<T>{
  return new Promise((resolve,reject)=>{
   let settled=false;let socket:WebSocket;
+  const requestId=`tapdeck-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
   const finish=(error?:Error,value?:T)=>{if(settled)return;settled=true;clearTimeout(timeout);try{socket.close();}catch{}if(error)reject(error);else resolve(value as T);};
   const timeout=setTimeout(()=>finish(new Error('Zaparoo did not respond. Check that its service is running on your MiSTer.')),9000);
   try{socket=new WebSocket(socketUrl(base));}catch{clearTimeout(timeout);reject(new Error('Could not reach Zaparoo on your MiSTer.'));return;}
-  socket.onopen=()=>socket.send(JSON.stringify({jsonrpc:'2.0',id:`tapdeck-${Date.now()}`,method,...(params===undefined?{}:{params})}));
-  socket.onmessage=event=>{try{const response=JSON.parse(String(event.data)) as RpcResponse<T>;if(response.error)finish(new Error(response.error.message??'Zaparoo could not complete that request.'));else finish(undefined,response.result);}catch{finish(new Error('Zaparoo returned an unreadable response.'));}};
+  socket.onopen=()=>socket.send(JSON.stringify({jsonrpc:'2.0',id:requestId,method,...(params===undefined?{}:{params})}));
+  socket.onmessage=event=>{try{const response=JSON.parse(String(event.data)) as RpcResponse<T>;if(response.id!==requestId)return;if(response.error)finish(new Error(response.error.message??'Zaparoo could not complete that request.'));else finish(undefined,response.result);}catch{finish(new Error('Zaparoo returned an unreadable response.'));}};
   socket.onerror=(event:Event)=>{const message=(event as Event&{message?:string}).message;finish(new Error(message?`Could not reach Zaparoo: ${message}`:'Could not reach Zaparoo on your MiSTer.'));};
   socket.onclose=(event:CloseEvent)=>{if(!settled)finish(new Error(`Zaparoo closed the connection (${event.code}).`));};
  });
