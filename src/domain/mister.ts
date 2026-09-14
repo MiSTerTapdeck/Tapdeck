@@ -1,33 +1,34 @@
 import type {Category,Game} from '../data/library';
 
-export interface MiSTerConnection {url:string;}
 type RemoteSystem={id:string;name:string;category?:string};
-type RemoteGame={name:string;path:string;system:{id:string;name:string;category?:string}};
+type RemoteGame={name:string;path:string;zapScript:string;system:RemoteSystem};
+type SearchResult={results?:RemoteGame[];pagination?:{hasNextPage?:boolean;nextCursor?:string}};
+type RpcResponse<T>={result?:T;error?:{message?:string}};
 
 export function normaliseMiSTerUrl(value:string){
  const raw=value.trim().replace(/\/+$/,'');
- if(!raw) throw new Error('Enter your MiSTer address.');
+ if(!raw)throw new Error('Enter your MiSTer address.');
  const candidate=/^https?:\/\//i.test(raw)?raw:`http://${raw}`;
  const parsed=new URL(candidate);
  if(!parsed.hostname)throw new Error('Enter a valid MiSTer address.');
- return `${parsed.protocol}//${parsed.host}${parsed.port?'':':8182'}`;
+ return `${parsed.protocol}//${parsed.host}${parsed.port?'':':7497'}`;
 }
-export function normaliseArtworkUrl(value:string){
- const raw=value.trim().replace(/\/+$/,'');
- if(!raw)return '';
- const candidate=/^https?:\/\//i.test(raw)?raw:`http://${raw}`;
- const parsed=new URL(candidate);
- if(!parsed.hostname)throw new Error('Enter a valid artwork bridge address.');
- return `${parsed.protocol}//${parsed.host}${parsed.pathname.replace(/\/+$/,'')}`;
-}
-async function request<T>(base:string,path:string,init?:RequestInit):Promise<T>{
- const response=await fetch(`${base}/api${path}`,{...init,headers:{Accept:'application/json','Content-Type':'application/json',...(init?.headers??{})}});
- if(!response.ok)throw new Error(response.status===404?'MiSTer Remote was not found.':'MiSTer did not respond.');
- return response.json() as Promise<T>;
+function socketUrl(base:string){return base.replace(/^http:/i,'ws:').replace(/^https:/i,'wss:')+'/api/v0.1';}
+function rpc<T>(base:string,method:string,params?:unknown):Promise<T>{
+ return new Promise((resolve,reject)=>{
+  let settled=false;let socket:WebSocket;
+  const finish=(error?:Error,value?:T)=>{if(settled)return;settled=true;clearTimeout(timeout);try{socket.close();}catch{}if(error)reject(error);else resolve(value as T);};
+  const timeout=setTimeout(()=>finish(new Error('Zaparoo did not respond. Check that its service is running on your MiSTer.')),9000);
+  try{socket=new WebSocket(socketUrl(base));}catch{clearTimeout(timeout);reject(new Error('Could not reach Zaparoo on your MiSTer.'));return;}
+  socket.onopen=()=>socket.send(JSON.stringify({jsonrpc:'2.0',id:`tapdeck-${Date.now()}`,method,...(params===undefined?{}:{params})}));
+  socket.onmessage=event=>{try{const response=JSON.parse(String(event.data)) as RpcResponse<T>;if(response.error)finish(new Error(response.error.message??'Zaparoo could not complete that request.'));else finish(undefined,response.result);}catch{finish(new Error('Zaparoo returned an unreadable response.'));}};
+  socket.onerror=()=>finish(new Error('Could not reach Zaparoo on your MiSTer.'));
+ });
 }
 export async function checkMiSTer(url:string){
- const systems=await request<RemoteSystem[]>(url,'/systems');
- return systems.filter(system=>system.id&&system.name);
+ const version=await rpc<{version?:string;platform?:string}>(url,'version');
+ if(!version?.version)throw new Error('Zaparoo did not identify itself.');
+ return version;
 }
 function categoryFor(category?:string):Exclude<Category,'All'>{
  const value=(category??'').toLowerCase();
@@ -37,10 +38,10 @@ function categoryFor(category?:string):Exclude<Category,'All'>{
 }
 function idFor(path:string){return `mister-${path.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')}`;}
 export async function readMiSTerLibrary(url:string):Promise<Game[]>{
- const response=await request<RemoteGame[]|{games?:RemoteGame[];data?:RemoteGame[]}>(url,'/games/search',{method:'POST',body:JSON.stringify({query:'',system:'all'})});
- const remoteGames=Array.isArray(response)?response:response.games??response.data??[];
+ const found:RemoteGame[]=[];let cursor:string|undefined;
+ do{const page=await rpc<SearchResult>(url,'media.search',{query:'',...(cursor?{cursor}:{})});found.push(...(page.results??[]));cursor=page.pagination?.hasNextPage?page.pagination.nextCursor:undefined;}while(cursor);
  const unique=new Map<string,Game>();
- remoteGames.forEach(game=>{if(game.path&&game.name)unique.set(game.path,{id:idFor(game.path),title:game.name,system:game.system?.name||'MiSTer',category:categoryFor(game.system?.category),year:null,developer:'From your MiSTer',genre:'Not listed',players:'Not listed',description:`Found on your MiSTer in ${game.system?.name||'your collection'}.`,remotePath:game.path});});
+ found.forEach(game=>{if(game.path&&game.name&&game.zapScript)unique.set(game.path,{id:idFor(game.path),title:game.name,system:game.system?.name||'MiSTer',category:categoryFor(game.system?.category),year:null,developer:'From your MiSTer',genre:'Not listed',players:'Not listed',description:`Found on your MiSTer in ${game.system?.name||'your collection'}.`,remotePath:game.zapScript});});
  return [...unique.values()].sort((a,b)=>a.title.localeCompare(b.title));
 }
-export async function launchMiSTerGame(url:string,path:string){await request(url,'/games/launch',{method:'POST',body:JSON.stringify({path})});}
+export async function launchMiSTerGame(url:string,zapScript:string){await rpc<null>(url,'run',{text:zapScript});}
