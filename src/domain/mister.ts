@@ -1,7 +1,8 @@
 import type {Category,Game} from '../data/library';
+import type {ImageSourcePropType} from 'react-native';
 
 type RemoteSystem={id:string;name:string;category?:string};
-type RemoteGame={name:string;path:string;zapScript:string;system:RemoteSystem};
+type RemoteGame={mediaId?:number;name:string;path:string;zapScript:string;system:RemoteSystem};
 type SearchResult={results?:RemoteGame[];pagination?:{hasNextPage?:boolean;nextCursor?:string}};
 type RpcResponse<T>={result?:T;error?:{message?:string}};
 
@@ -39,9 +40,13 @@ function categoryFor(category?:string):Exclude<Category,'All'>{
 function idFor(path:string){return `mister-${path.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')}`;}
 export async function readMiSTerLibrary(url:string):Promise<Game[]>{
  const found:RemoteGame[]=[];let cursor:string|undefined;
- do{const page=await rpc<SearchResult>(url,'media.search',{query:'',...(cursor?{cursor}:{})});found.push(...(page.results??[]));cursor=page.pagination?.hasNextPage?page.pagination.nextCursor:undefined;}while(cursor);
+ do{const page=await rpc<SearchResult>(url,'media.search',{query:'',maxResults:1000,...(cursor?{cursor}:{})});found.push(...(page.results??[]));cursor=page.pagination?.hasNextPage?page.pagination.nextCursor:undefined;}while(cursor);
  const unique=new Map<string,Game>();
- found.forEach(game=>{if(game.path&&game.name&&game.zapScript)unique.set(game.path,{id:idFor(game.path),title:game.name,system:game.system?.name||'MiSTer',category:categoryFor(game.system?.category),year:null,developer:'From your MiSTer',genre:'Not listed',players:'Not listed',description:`Found on your MiSTer in ${game.system?.name||'your collection'}.`,remotePath:game.zapScript});});
+ found.forEach(game=>{if(game.path&&game.name&&game.zapScript)unique.set(game.path,{id:idFor(game.path),title:game.name,system:game.system?.name||'MiSTer',category:categoryFor(game.system?.category),year:null,developer:'From your MiSTer',genre:'Not listed',players:'Not listed',description:`Found on your MiSTer in ${game.system?.name||'your collection'}.`,remotePath:game.zapScript,remoteMediaId:game.mediaId});});
  return [...unique.values()].sort((a,b)=>a.title.localeCompare(b.title));
 }
 export async function launchMiSTerGame(url:string,zapScript:string){await rpc<null>(url,'run',{text:zapScript});}
+export async function readMiSTerArtwork(url:string,mediaId:number):Promise<ImageSourcePropType|undefined>{
+ const result=await rpc<{data?:string;contentType?:string}>(url,'media.image',{mediaId,imageTypes:['image','thumbnail','boxart','boxart3d','screenshot'],maxSize:768});
+ return result.data?{uri:`data:${result.contentType??'image/webp'};base64,${result.data}`} :undefined;
+}

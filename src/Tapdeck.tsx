@@ -10,7 +10,7 @@ import {categories,fallbackArtwork,fallbackThumbnail,games,type Category,type Ga
 import {filterGames,genresForCategory,parseSaved,systemsForCategory,type SortOrder} from './domain/library';
 import {parsePlaylists,reorderIds,type Playlist} from './domain/playlists';
 import {recommendGames} from './domain/discover';
-import {checkMiSTer,launchMiSTerGame,normaliseMiSTerUrl,readMiSTerLibrary} from './domain/mister';
+import {checkMiSTer,launchMiSTerGame,normaliseMiSTerUrl,readMiSTerArtwork,readMiSTerLibrary} from './domain/mister';
 import {GameCard} from './components/GameCard';
 import {GameRow} from './components/GameRow';
 import {Paper} from './components/Paper';
@@ -101,7 +101,7 @@ function Tapdeck() {
  function confirmDeletePlaylist(){if(!activePlaylist)return;void storePlaylists(playlists.filter(item=>item.id!==activePlaylist.id));setActivePlaylistId(null);setPanel(null);tap();notify('Playlist deleted.');}
  async function recordPlayed(gameId:string){const time=Date.now();const next={...playHistory,[gameId]:time};setPlayHistory(next);try{await AsyncStorage.setItem(PLAY_HISTORY_KEY,JSON.stringify(next));}catch{notify('The played history could not be saved.');}}
  function markPlayed(playlistId:string,gameId:string){if(!playlistId.startsWith('standard-'))updatePlaylist(playlistId,playlist=>({...playlist,playedAt:{...playlist.playedAt,[gameId]:Date.now()}}));void recordPlayed(gameId);}
- function open(game:Game){Keyboard.dismiss();tap();setCardDirection(null);setSelected(game);}
+ function open(game:Game){Keyboard.dismiss();tap();setCardDirection(null);setSelected(game);if(connected&&game.remoteMediaId&&!game.image){void readMiSTerArtwork(normaliseMiSTerUrl(misterUrl),game.remoteMediaId).then(image=>{if(!image)return;setLibraryRecords(records=>records.map(record=>record.id===game.id?{...record,image}:record));setSelected(current=>current?.id===game.id?{...current,image}:current);}).catch(()=>{});}}
  const standardPlaylists=useMemo<Playlist[]>(()=>[{id:STANDARD_FAVOURITES_ID,title:'Favourites',gameIds:saved,createdAt:0,playedAt:{}},{id:STANDARD_LAST_PLAYED_ID,title:'Last played',gameIds:Object.entries(playHistory).sort(([,a],[,b])=>b-a).map(([id])=>id),createdAt:0,playedAt:playHistory}],[saved,playHistory]);
  const allPlaylists=useMemo(()=>[...standardPlaylists,...playlists],[standardPlaylists,playlists]);
  const activePlaylist=allPlaylists.find(p=>p.id===activePlaylistId)??null;
