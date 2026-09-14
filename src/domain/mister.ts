@@ -23,7 +23,8 @@ function rpc<T>(base:string,method:string,params?:unknown):Promise<T>{
   try{socket=new WebSocket(socketUrl(base));}catch{clearTimeout(timeout);reject(new Error('Could not reach Zaparoo on your MiSTer.'));return;}
   socket.onopen=()=>socket.send(JSON.stringify({jsonrpc:'2.0',id:`tapdeck-${Date.now()}`,method,...(params===undefined?{}:{params})}));
   socket.onmessage=event=>{try{const response=JSON.parse(String(event.data)) as RpcResponse<T>;if(response.error)finish(new Error(response.error.message??'Zaparoo could not complete that request.'));else finish(undefined,response.result);}catch{finish(new Error('Zaparoo returned an unreadable response.'));}};
-  socket.onerror=()=>finish(new Error('Could not reach Zaparoo on your MiSTer.'));
+  socket.onerror=(event:Event)=>{const message=(event as Event&{message?:string}).message;finish(new Error(message?`Could not reach Zaparoo: ${message}`:'Could not reach Zaparoo on your MiSTer.'));};
+  socket.onclose=(event:CloseEvent)=>{if(!settled)finish(new Error(`Zaparoo closed the connection (${event.code}).`));};
  });
 }
 export async function checkMiSTer(url:string){
