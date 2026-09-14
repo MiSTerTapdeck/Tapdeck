@@ -1,12 +1,15 @@
-import React from 'react';
+import React,{useEffect,useState} from 'react';
 import {Image,Pressable,StyleSheet,Text,View} from 'react-native';
 import {fallbackThumbnail,type Game} from '../data/library';
 import {fonts,palette as c} from '../theme';
 import {Icon} from './Icon';
-export function GameRow({game,saved,onPress,annotation,trailing}:{game:Game;saved:boolean;onPress:()=>void;annotation?:string;trailing?:React.ReactNode}) {
- const artwork=game.image??fallbackThumbnail(game.genre);
+import {readMiSTerArtwork} from '../domain/mister';
+export function GameRow({game,saved,onPress,annotation,trailing,artworkUrl}:{game:Game;saved:boolean;onPress:()=>void;annotation?:string;trailing?:React.ReactNode;artworkUrl?:string}) {
+ const [remoteArtwork,setRemoteArtwork]=useState<Game['image']>();
+ useEffect(()=>{let active=true;if(!artworkUrl||!game.remoteMediaId||game.image)return;void readMiSTerArtwork(artworkUrl,game.remoteMediaId,['thumbnail','boxart','boxart3d','image'],128).then(image=>{if(active&&image)setRemoteArtwork(image);}).catch(()=>{});return()=>{active=false;};},[artworkUrl,game.id,game.image,game.remoteMediaId]);
+ const artwork=game.image??remoteArtwork??fallbackThumbnail(game.genre);
  return <Pressable testID={`row-${game.id}`} accessibilityRole="button" accessibilityLabel={`Open ${game.title}, ${game.system}, ${game.year??'year unknown'}${saved?', saved':''}`} onPress={onPress} style={s.row}>
-  <View style={s.thumb}><Image source={artwork} resizeMode={game.image?'cover':'contain'} style={s.image} accessibilityLabel={`${game.title} ${game.image?'box artwork':'genre illustration'}`}/></View>
+  <View style={s.thumb}><Image source={artwork} resizeMode={game.image||remoteArtwork?'cover':'contain'} style={s.image} accessibilityLabel={`${game.title} ${game.image||remoteArtwork?'box artwork':'genre illustration'}`}/></View>
   <View style={s.copy}><Text style={s.title} numberOfLines={1}>{game.title}</Text><Text style={s.meta}>{game.system} <Text style={s.dot}>·</Text> {game.year??'Year unknown'}</Text><Text style={s.genre} numberOfLines={1}>{annotation??game.genre}</Text></View>
   {trailing??<>{saved&&<Icon name="bookmark" filled size={16} color={c.orange}/>}<Icon name="arrow" size={17} color="#9B8F7C"/></>}
  </Pressable>;

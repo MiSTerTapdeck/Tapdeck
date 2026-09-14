@@ -1,21 +1,24 @@
-import React,{useRef} from 'react';
+import React,{useEffect,useRef,useState} from 'react';
 import {Platform,Animated,Image,Pressable,StyleSheet,Text,View} from 'react-native';
 import {fallbackArtwork,type Game} from '../data/library';
 import {isVintage} from '../domain/library';
 import {fonts,palette as c} from '../theme';
 import {Paper} from './Paper';
 import {Icon} from './Icon';
-export function GameCard({game,index,saved,onPress,reducedMotion}:{game:Game;index:number;saved:boolean;onPress:()=>void;reducedMotion:boolean}) {
+import {readMiSTerArtwork} from '../domain/mister';
+export function GameCard({game,index,saved,onPress,reducedMotion,artworkUrl}:{game:Game;index:number;saved:boolean;onPress:()=>void;reducedMotion:boolean;artworkUrl?:string}) {
  const scale=useRef(new Animated.Value(1)).current;
+ const [remoteArtwork,setRemoteArtwork]=useState<Game['image']>();
+ useEffect(()=>{let active=true;if(!artworkUrl||!game.remoteMediaId||game.image)return;void readMiSTerArtwork(artworkUrl,game.remoteMediaId,['image','thumbnail','boxart','boxart3d'],512).then(image=>{if(active&&image)setRemoteArtwork(image);}).catch(()=>{});return()=>{active=false;};},[artworkUrl,game.id,game.image,game.remoteMediaId]);
  const vintage=isVintage(game.year);
- const artwork=game.image??fallbackArtwork(game.genre);
+ const artwork=game.image??remoteArtwork??fallbackArtwork(game.genre);
  const animate=(toValue:number)=>{if(!reducedMotion)Animated.spring(scale,{toValue,useNativeDriver:Platform.OS!=='web',speed:35,bounciness:0}).start();};
  return <Pressable accessibilityRole="button" accessibilityLabel={`Open ${game.title}, ${game.system}, ${game.year??'year unknown'}${saved?', saved':''}`} onPress={onPress} onPressIn={()=>animate(.965)} onPressOut={()=>animate(1)} testID={`card-${game.id}`} style={{flex:1}}>
   <Animated.View style={[s.card,{transform:[{scale}],backgroundColor:vintage?c.card:'#F9F5EA'}]}>
   <Paper opacity={vintage?.8:.14}/>
   <View style={s.top}><Text style={s.serial}>{String(index+1).padStart(3,'0')}</Text><Text style={[s.system,{color:game.system==='Mega Drive'?'#375970':game.system==='Arcade'?'#58623F':'#91402B'}]}>{game.system.toUpperCase()}</Text></View>
-  <View style={[s.art,!game.image&&!!artwork&&{backgroundColor:'#EFE7D5'}]}>
-   {artwork?<Image source={artwork} style={s.image} resizeMode={game.image?'cover':'contain'} accessibilityLabel={`${game.title} ${game.image?'original box artwork':'genre artwork'}`}/>:<View style={s.missing}><Icon name="computer" size={38} color="#9A8767"/><Text style={s.missingTitle}>{game.title}</Text><Text style={s.missingCaption}>ARTWORK UNAVAILABLE</Text></View>}
+  <View style={[s.art,!game.image&&!remoteArtwork&&!!artwork&&{backgroundColor:'#EFE7D5'}]}>
+   {artwork?<Image source={artwork} style={s.image} resizeMode={game.image||remoteArtwork?'cover':'contain'} accessibilityLabel={`${game.title} ${game.image||remoteArtwork?'original box artwork':'genre artwork'}`}/>:<View style={s.missing}><Icon name="computer" size={38} color="#9A8767"/><Text style={s.missingTitle}>{game.title}</Text><Text style={s.missingCaption}>ARTWORK UNAVAILABLE</Text></View>}
   </View>
   <View style={s.cardFoot}><Text style={s.cardGenre} numberOfLines={1}>{game.genre==='Not listed'?'COLLECTION':game.genre.toUpperCase()}</Text>{saved?<Icon name="bookmark" filled size={13} color={c.orange}/>:<Text style={s.year}>{game.year??'—'}</Text>}</View>
  </Animated.View>

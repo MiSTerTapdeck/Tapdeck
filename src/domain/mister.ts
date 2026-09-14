@@ -2,7 +2,7 @@ import type {Category,Game} from '../data/library';
 import type {ImageSourcePropType} from 'react-native';
 
 type RemoteSystem={id:string;name:string;category?:string};
-type RemoteGame={mediaId?:number;name:string;path:string;zapScript:string;system:RemoteSystem};
+type RemoteGame={mediaId?:number;name:string;path:string;zapScript:string;hasCover?:boolean;tags?:{type:string;tag:string}[];system:RemoteSystem};
 type SearchResult={results?:RemoteGame[];pagination?:{hasNextPage?:boolean;nextCursor?:string}};
 type RpcResponse<T>={id?:string|number;result?:T;error?:{message?:string}};
 
@@ -43,12 +43,17 @@ function idFor(path:string){return `mister-${path.toLowerCase().replace(/[^a-z0-
 export async function readMiSTerLibrary(url:string):Promise<Game[]>{
  const found:RemoteGame[]=[];let cursor:string|undefined;
  do{const page=await rpc<SearchResult>(url,'media.search',{query:'',maxResults:1000,...(cursor?{cursor}:{})});found.push(...(page.results??[]));cursor=page.pagination?.hasNextPage?page.pagination.nextCursor:undefined;}while(cursor);
- const unique=new Map<string,Game>();
- found.forEach(game=>{if(game.path&&game.name&&game.zapScript)unique.set(game.path,{id:idFor(game.path),title:game.name,system:game.system?.name||'MiSTer',category:categoryFor(game.system?.category),year:null,developer:'From your MiSTer',genre:'Not listed',players:'Not listed',description:`Found on your MiSTer in ${game.system?.name||'your collection'}.`,remotePath:game.zapScript,remoteMediaId:game.mediaId});});
- return [...unique.values()].sort((a,b)=>a.title.localeCompare(b.title));
+ const unique=new Map<string,{game:RemoteGame;record:Game}>();
+ found.forEach(game=>{if(!game.path||!game.name||!game.zapScript)return;const tags=game.tags??[];const tag=(...types:string[])=>tags.find(item=>types.includes(item.type.toLowerCase()))?.tag;const record:Game={id:idFor(game.path),title:game.name,system:game.system?.name||'MiSTer',category:categoryFor(game.system?.category),year:Number(tag('year','releasedate'))||null,developer:tag('developer','publisher','manufacturer')??'Not listed',genre:tag('genre','gamegenre')??'Not listed',players:tag('players')??'Not listed',description:`Found on your MiSTer in ${game.system?.name||'your collection'}.`,remotePath:game.zapScript,remoteMediaId:game.mediaId};const key=`${game.system?.id??record.system}::${game.name.trim().toLocaleLowerCase()}`;const current=unique.get(key);const better=!current||(!current.game.hasCover&&!!game.hasCover)||(!current.game.path.includes('/media/usb')&&game.path.includes('/media/usb'));if(better)unique.set(key,{game,record});});
+ return [...unique.values()].map(item=>item.record).sort((a,b)=>a.title.localeCompare(b.title));
 }
 export async function launchMiSTerGame(url:string,zapScript:string){await rpc<null>(url,'run',{text:zapScript});}
-export async function readMiSTerArtwork(url:string,mediaId:number):Promise<ImageSourcePropType|undefined>{
- const result=await rpc<{data?:string;contentType?:string}>(url,'media.image',{mediaId,imageTypes:['image','thumbnail','boxart','boxart3d','screenshot'],maxSize:768});
+export async function readMiSTerArtwork(url:string,mediaId:number,imageTypes=['image','thumbnail','boxart','boxart3d','screenshot'],maxSize=768):Promise<ImageSourcePropType|undefined>{
+ const result=await rpc<{data?:string;contentType?:string}>(url,'media.image',{mediaId,imageTypes,maxSize});
  return result.data?{uri:`data:${result.contentType??'image/webp'};base64,${result.data}`} :undefined;
+}
+export async function readMiSTerMetadata(url:string,mediaId:number):Promise<Partial<Game>>{
+ const result=await rpc<{media?:{title?:{tags?:{type:string;tag:string}[];properties?:Record<string,{text?:string}>};properties?:Record<string,{text?:string}>}}>(url,'media.meta',{mediaId});
+ const title=result.media?.title;const tags=title?.tags??[];const tag=(...types:string[])=>tags.find(item=>types.includes(item.type.toLowerCase()))?.tag;const description=title?.properties?.['property:description']?.text??result.media?.properties?.['property:description']?.text;
+ return {year:Number(tag('year','releasedate'))||null,developer:tag('developer','publisher','manufacturer')??undefined,genre:tag('genre','gamegenre')??undefined,players:tag('players')??undefined,description};
 }
