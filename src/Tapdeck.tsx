@@ -41,7 +41,7 @@ function Tapdeck() {
  const [category,setCategory]=useState<Category>('All');const [query,setQuery]=useState('');
  const [selectedSystem,setSelectedSystem]=useState<string|null>(null);
  const [selectedGenre,setSelectedGenre]=useState<string|null>(null);
- const [libraryRecords,setLibraryRecords]=useState<Game[]>([]);
+ const [libraryRecords,setLibraryRecords]=useState<Game[]>(games);
  const libraryGames=useMemo(()=>omitCollectionArtwork(libraryRecords),[libraryRecords]);
  const [misterUrl,setMiSTerUrl]=useState('');const [connected,setConnected]=useState(false);const [connecting,setConnecting]=useState(false);
  const systems=useMemo(()=>systemsForCategory(libraryGames,category),[libraryGames,category]);
