@@ -76,7 +76,7 @@ function Tapdeck() {
   if(Platform.OS==='web'){const handler=(e:KeyboardEvent)=>{if(e.key==='Escape')back();};document.addEventListener('keydown',handler);return()=>{subscription.remove();document.removeEventListener('keydown',handler);};}
   return()=>subscription.remove();
  },[selected,panel]);
- useEffect(()=>{if(!ready||!shouldAutoConnect||!misterUrl||connected||connecting)return;setShouldAutoConnect(false);const timer=setTimeout(()=>{autoConnectAttempts.current+=1;void connectMiSTer().then(success=>{if(!success&&autoConnectAttempts.current<2)setTimeout(()=>setShouldAutoConnect(true),1500);});},350);return()=>clearTimeout(timer);},[ready,shouldAutoConnect,misterUrl,connected,connecting]);
+ useEffect(()=>{if(!ready||!shouldAutoConnect||!misterUrl||connected||connecting)return;setShouldAutoConnect(false);const timer=setTimeout(()=>{autoConnectAttempts.current+=1;void reconnectSavedMiSTer().then(success=>{if(!success&&autoConnectAttempts.current<2)setTimeout(()=>setShouldAutoConnect(true),1500);});},350);return()=>clearTimeout(timer);},[ready,shouldAutoConnect,misterUrl,connected,connecting]);
  async function toggleSaved(game:Game){
   if(!ready||saving.current)return;saving.current=true;tap();
   const next=saved.includes(game.id)?saved.filter(id=>id!==game.id):[...saved,game.id];
@@ -87,6 +87,7 @@ function Tapdeck() {
   try{await AsyncStorage.setItem(PLAYLISTS_KEY,JSON.stringify(next));setPlaylists(next);}
   catch{notify('Could not save that playlist. Please try again.');}
  }
+ async function reconnectSavedMiSTer(){try{setConnecting(true);const url=normaliseMiSTerUrl(misterUrl);await checkMiSTer(url);setConnected(true);if(libraryRecords.length)void warmMiSTerArtwork(url,libraryRecords);return true;}catch{return false;}finally{setConnecting(false);}}
  async function connectMiSTer(refresh=false){
   try{setConnecting(true);setReadingGames(0);Keyboard.dismiss();const url=normaliseMiSTerUrl(misterUrl);await checkMiSTer(url);const found=await readMiSTerLibrary(url,setReadingGames);if(!found.length)throw new Error('Zaparoo has not indexed any games yet. Let its first library scan finish, then refresh.');await Promise.all([AsyncStorage.setItem(MISTER_URL_KEY,url),saveCachedMiSTerLibrary(found)]);setMiSTerUrl(url);setLibraryRecords(found);setConnected(true);setPanel(null);void warmMiSTerArtwork(url,found);notify(`${found.length} games read from your MiSTer.`);return true;}
   catch(error){notify(error instanceof Error?error.message:'Could not connect to your MiSTer.');if(refresh)setConnected(false);return false;}
