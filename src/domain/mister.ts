@@ -59,7 +59,7 @@ export function readMiSTerArtwork(url:string,mediaId:number,imageTypes=['image',
  const key=`${url}|${mediaId}|${imageTypes.join(',')}|${maxSize}`;
  if(artworkCache.has(key))return Promise.resolve(artworkCache.get(key));
  const pending=pendingArtwork.get(key);if(pending)return pending;
- const request=queueArtwork(async()=>{const cached=await loadCachedArtwork(key);if(cached){const image={uri:cached};artworkCache.set(key,image);return image;}const result=await rpc<{data?:string;contentType?:string}>(url,'media.image',{mediaId,imageTypes,maxSize},20000);const image=result.data?{uri:`data:${result.contentType??'image/webp'};base64,${result.data}`} :undefined;if(image)void saveCachedArtwork(key,image.uri).catch(()=>{});artworkCache.set(key,image);return image;});
+ const request=queueArtwork(async()=>{const cached=await loadCachedArtwork(key);if(cached){const image={uri:cached};artworkCache.set(key,image);return image;}const result=await rpc<{data?:string;contentType?:string}>(url,'media.image',{mediaId,imageTypes,maxSize},20000);const image=result.data?{uri:`data:${result.contentType??'image/webp'};base64,${result.data}`} :undefined;if(image)await saveCachedArtwork(key,image.uri);artworkCache.set(key,image);return image;});
 
  pendingArtwork.set(key,request);void request.then(()=>pendingArtwork.delete(key),()=>pendingArtwork.delete(key));
  return request;
