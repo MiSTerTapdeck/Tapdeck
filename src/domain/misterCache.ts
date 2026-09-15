@@ -37,3 +37,19 @@ export async function loadCachedArtwork(key:string):Promise<string|undefined>{if
 export async function saveCachedArtwork(key:string,value:string):Promise<void>{if(Platform.OS==='web')return;const db=await getDatabase();await db.runAsync('INSERT OR REPLACE INTO artwork (key, value) VALUES (?, ?)',[key,value]);}
 
 export async function getCachedArtworkStats():Promise<{count:number;bytes:number}>{if(Platform.OS==='web')return {count:0,bytes:0};const db=await getDatabase();const row=await db.getFirstAsync<{count:number;bytes:number}>('SELECT COUNT(*) AS count, COALESCE(SUM(LENGTH(value)), 0) AS bytes FROM artwork');return {count:Number(row?.count??0),bytes:Number(row?.bytes??0)};}
+
+export async function getCachedArtworkBySystem(games:Game[],url:string):Promise<{system:string;cached:number;total:number}[]>{
+ if(Platform.OS==='web'||!url)return [];
+ const db=await getDatabase();
+ const rows=await db.getAllAsync<{key:string}>('SELECT key FROM artwork');
+ const keys=new Set(rows.map(row=>row.key));
+ const totals=new Map<string,{cached:number;total:number}>();
+ for(const game of games){
+  if(game.remoteMediaId===undefined)continue;
+  const entry=totals.get(game.system)??{cached:0,total:0};entry.total+=1;
+  const types=game.category==='Arcade'?['thumbnail','boxart','boxart3d','image','screenshot']:['thumbnail','boxart','boxart3d','image'];
+  if(keys.has(`${url}|${game.remoteMediaId}|${types.join(',')}|128`))entry.cached+=1;
+  totals.set(game.system,entry);
+ }
+ return [...totals.entries()].map(([system,counts])=>({system,...counts})).sort((a,b)=>a.system.localeCompare(b.system));
+}
