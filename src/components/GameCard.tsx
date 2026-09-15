@@ -5,11 +5,11 @@ import {isVintage} from '../domain/library';
 import {fonts,palette as c} from '../theme';
 import {Paper} from './Paper';
 import {Icon} from './Icon';
-import {readMiSTerArtwork} from '../domain/mister';
-export function GameCard({game,index,saved,onPress,reducedMotion,artworkUrl}:{game:Game;index:number;saved:boolean;onPress:()=>void;reducedMotion:boolean;artworkUrl?:string}) {
+import {readCachedMiSTerThumbnail,readMiSTerThumbnail} from '../domain/mister';
+export function GameCard({game,index,saved,onPress,reducedMotion,artworkUrl,fetchRemote}:{game:Game;index:number;saved:boolean;onPress:()=>void;reducedMotion:boolean;artworkUrl?:string;fetchRemote?:boolean}) {
  const scale=useRef(new Animated.Value(1)).current;
  const [remoteArtwork,setRemoteArtwork]=useState<Game['image']>();
- useEffect(()=>{let active=true;if(!artworkUrl||!game.remoteMediaId||game.image)return;const imageTypes=game.category==='Arcade'?['image','thumbnail','boxart','boxart3d','screenshot']:['image','thumbnail','boxart','boxart3d'];void readMiSTerArtwork(artworkUrl,game.remoteMediaId,imageTypes,512).then(image=>{if(active&&image)setRemoteArtwork(image);}).catch(()=>{});return()=>{active=false;};},[artworkUrl,game.id,game.image,game.remoteMediaId,game.remoteHasArtwork,game.category]);
+ useEffect(()=>{let active=true;if(!artworkUrl||!game.remoteMediaId||game.image)return;void (async()=>{const cached=await readCachedMiSTerThumbnail(artworkUrl,game.remoteMediaId!,game.category);if(cached){if(active)setRemoteArtwork(cached);return;}if(fetchRemote){const image=await readMiSTerThumbnail(artworkUrl,game.remoteMediaId!,game.category);if(active&&image)setRemoteArtwork(image);}})().catch(()=>{});return()=>{active=false;};},[artworkUrl,fetchRemote,game.id,game.image,game.remoteMediaId,game.category]);
  const vintage=isVintage(game.year);
  const artwork=game.image??remoteArtwork??fallbackArtwork(game.genre);
  const animate=(toValue:number)=>{if(!reducedMotion)Animated.spring(scale,{toValue,useNativeDriver:Platform.OS!=='web',speed:35,bounciness:0}).start();};
