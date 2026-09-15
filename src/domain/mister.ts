@@ -59,7 +59,7 @@ export function readMiSTerArtwork(url:string,mediaId:number,imageTypes=['image',
  if(artworkCache.has(key))return Promise.resolve(artworkCache.get(key));
  const pending=pendingArtwork.get(key);if(pending)return pending;
  const request=queueArtwork(async()=>{const result=await rpc<{data?:string;contentType?:string}>(url,'media.image',{mediaId,imageTypes,maxSize},20000);const image=result.data?{uri:`data:${result.contentType??'image/webp'};base64,${result.data}`} :undefined;artworkCache.set(key,image);return image;});
- pendingArtwork.set(key,request);void request.finally(()=>pendingArtwork.delete(key));
+ pendingArtwork.set(key,request);void request.then(()=>pendingArtwork.delete(key),()=>pendingArtwork.delete(key));
  return request;
 }
 export async function readMiSTerMetadata(url:string,mediaId:number):Promise<Partial<Game>>{
