@@ -6,7 +6,7 @@ import {Icon} from './Icon';
 import {readMiSTerArtwork} from '../domain/mister';
 export function GameRow({game,saved,onPress,annotation,trailing,artworkUrl}:{game:Game;saved:boolean;onPress:()=>void;annotation?:string;trailing?:React.ReactNode;artworkUrl?:string}) {
  const [remoteArtwork,setRemoteArtwork]=useState<Game['image']>();
- useEffect(()=>{let active=true;if(!artworkUrl||!game.remoteMediaId||game.image)return;void readMiSTerArtwork(artworkUrl,game.remoteMediaId,['thumbnail','boxart','boxart3d','image'],128).then(image=>{if(active&&image)setRemoteArtwork(image);}).catch(()=>{});return()=>{active=false;};},[artworkUrl,game.id,game.image,game.remoteMediaId]);
+ useEffect(()=>{let active=true;if(!artworkUrl||!game.remoteMediaId||game.image||game.remoteHasArtwork===false)return;void readMiSTerArtwork(artworkUrl,game.remoteMediaId,['thumbnail','boxart','boxart3d','image'],128).then(image=>{if(active&&image)setRemoteArtwork(image);}).catch(()=>{});return()=>{active=false;};},[artworkUrl,game.id,game.image,game.remoteMediaId,game.remoteHasArtwork]);
  const artwork=game.image??remoteArtwork??fallbackThumbnail(game.genre);
  return <Pressable testID={`row-${game.id}`} accessibilityRole="button" accessibilityLabel={`Open ${game.title}, ${game.system}, ${game.year??'year unknown'}${saved?', saved':''}`} onPress={onPress} style={s.row}>
   <View style={s.thumb}><Image source={artwork} resizeMode={game.image||remoteArtwork?'cover':'contain'} style={s.image} accessibilityLabel={`${game.title} ${game.image||remoteArtwork?'box artwork':'genre illustration'}`}/></View>
