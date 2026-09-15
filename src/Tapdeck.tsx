@@ -41,10 +41,10 @@ function Tapdeck() {
  const [category,setCategory]=useState<Category>('All');const [query,setQuery]=useState('');
  const [selectedSystem,setSelectedSystem]=useState<string|null>(null);
  const [selectedGenre,setSelectedGenre]=useState<string|null>(null);
- const [libraryRecords,setLibraryRecords]=useState<Game[]>(games);
+ const [libraryRecords,setLibraryRecords]=useState<Game[]>([]);
  const libraryGames=useMemo(()=>omitCollectionArtwork(libraryRecords),[libraryRecords]);
  const [misterUrl,setMiSTerUrl]=useState('');const [connected,setConnected]=useState(false);const [connecting,setConnecting]=useState(false);
- const [shouldAutoConnect,setShouldAutoConnect]=useState(false);
+ const [shouldAutoConnect,setShouldAutoConnect]=useState(false);const autoConnectAttempts=useRef(0);
  const systems=useMemo(()=>systemsForCategory(libraryGames,category),[libraryGames,category]);
  const genres=useMemo(()=>genresForCategory(libraryGames,category),[libraryGames,category]);
  const [sort,setSort]=useState<SortOrder>('collection');const [savedOnly,setSavedOnly]=useState(false);
@@ -73,7 +73,7 @@ function Tapdeck() {
   if(Platform.OS==='web'){const handler=(e:KeyboardEvent)=>{if(e.key==='Escape')back();};document.addEventListener('keydown',handler);return()=>{subscription.remove();document.removeEventListener('keydown',handler);};}
   return()=>subscription.remove();
  },[selected,panel]);
- useEffect(()=>{if(!ready||!shouldAutoConnect||!misterUrl||connected||connecting)return;setShouldAutoConnect(false);void connectMiSTer();},[ready,shouldAutoConnect,misterUrl,connected,connecting]);
+ useEffect(()=>{if(!ready||!shouldAutoConnect||!misterUrl||connected||connecting)return;setShouldAutoConnect(false);const timer=setTimeout(()=>{autoConnectAttempts.current+=1;void connectMiSTer().then(success=>{if(!success&&autoConnectAttempts.current<2)setTimeout(()=>setShouldAutoConnect(true),1500);});},350);return()=>clearTimeout(timer);},[ready,shouldAutoConnect,misterUrl,connected,connecting]);
  async function toggleSaved(game:Game){
   if(!ready||saving.current)return;saving.current=true;tap();
   const next=saved.includes(game.id)?saved.filter(id=>id!==game.id):[...saved,game.id];
@@ -85,8 +85,8 @@ function Tapdeck() {
   catch{notify('Could not save that playlist. Please try again.');}
  }
  async function connectMiSTer(refresh=false){
-  try{setConnecting(true);Keyboard.dismiss();const url=normaliseMiSTerUrl(misterUrl);await checkMiSTer(url);const found=await readMiSTerLibrary(url);if(!found.length)throw new Error('Zaparoo has not indexed any games yet. Let its first library scan finish, then refresh.');await AsyncStorage.setItem(MISTER_URL_KEY,url);setMiSTerUrl(url);setLibraryRecords(found);setConnected(true);setPanel(null);notify(`${found.length} games read from your MiSTer.`);}
-  catch(error){notify(error instanceof Error?error.message:'Could not connect to your MiSTer.');if(refresh)setConnected(false);}
+  try{setConnecting(true);Keyboard.dismiss();const url=normaliseMiSTerUrl(misterUrl);await checkMiSTer(url);const found=await readMiSTerLibrary(url);if(!found.length)throw new Error('Zaparoo has not indexed any games yet. Let its first library scan finish, then refresh.');await AsyncStorage.setItem(MISTER_URL_KEY,url);setMiSTerUrl(url);setLibraryRecords(found);setConnected(true);setPanel(null);notify(`${found.length} games read from your MiSTer.`);return true;}
+  catch(error){notify(error instanceof Error?error.message:'Could not connect to your MiSTer.');if(refresh)setConnected(false);return false;}
   finally{setConnecting(false);}
  }
  async function launch(game:Game){
