@@ -1,5 +1,6 @@
 import type {Category,Game} from '../data/library';
 import type {ImageSourcePropType} from 'react-native';
+import {loadCachedArtwork,saveCachedArtwork} from './misterCache';
 
 type RemoteSystem={id:string;name:string;category?:string};
 type RemoteGame={mediaId?:number;name:string;path:string;zapScript:string;hasCover?:boolean;tags?:{type:string;tag:string}[];system:RemoteSystem};
@@ -58,7 +59,8 @@ export function readMiSTerArtwork(url:string,mediaId:number,imageTypes=['image',
  const key=`${url}|${mediaId}|${imageTypes.join(',')}|${maxSize}`;
  if(artworkCache.has(key))return Promise.resolve(artworkCache.get(key));
  const pending=pendingArtwork.get(key);if(pending)return pending;
- const request=queueArtwork(async()=>{const result=await rpc<{data?:string;contentType?:string}>(url,'media.image',{mediaId,imageTypes,maxSize},20000);const image=result.data?{uri:`data:${result.contentType??'image/webp'};base64,${result.data}`} :undefined;artworkCache.set(key,image);return image;});
+ const request=queueArtwork(async()=>{const cached=await loadCachedArtwork(key);if(cached){const image={uri:cached};artworkCache.set(key,image);return image;}const result=await rpc<{data?:string;contentType?:string}>(url,'media.image',{mediaId,imageTypes,maxSize},20000);const image=result.data?{uri:`data:${result.contentType??'image/webp'};base64,${result.data}`} :undefined;if(image)void saveCachedArtwork(key,image.uri).catch(()=>{});artworkCache.set(key,image);return image;});
+
  pendingArtwork.set(key,request);void request.then(()=>pendingArtwork.delete(key),()=>pendingArtwork.delete(key));
  return request;
 }
@@ -67,3 +69,5 @@ export async function readMiSTerMetadata(url:string,mediaId:number):Promise<Part
  const title=result.media?.title;const tags=title?.tags??[];const tag=(...types:string[])=>tags.find(item=>types.includes(item.type.toLowerCase()))?.tag;const description=title?.properties?.['property:description']?.text??result.media?.properties?.['property:description']?.text;
  return {year:Number(tag('year','releasedate'))||null,developer:tag('developer','publisher','manufacturer')??undefined,genre:tag('genre','gamegenre')??undefined,players:tag('players')??undefined,description};
 }
+
+export function clearMiSTerArtworkMemoryCache(){artworkCache.clear();}

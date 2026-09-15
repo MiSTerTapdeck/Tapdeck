@@ -12,7 +12,7 @@ function validGames(value:unknown):Game[]{
  return value.filter((game):game is Game=>!!game&&typeof game==='object'&&typeof game.id==='string'&&typeof game.title==='string'&&typeof game.system==='string'&&['Consoles','Computers','Arcade'].includes(game.category)&&typeof game.remotePath==='string');
 }
 async function getDatabase(){
- if(!database){database=await SQLite.openDatabaseAsync('tapdeck-library.db');await database.execAsync('CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);');}
+ if(!database){database=await SQLite.openDatabaseAsync('tapdeck-library.db');await database.execAsync('CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS artwork (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);');}
  return database;
 }
 export async function loadCachedMiSTerLibrary():Promise<Game[]>{
@@ -32,3 +32,6 @@ export async function saveCachedMiSTerLibrary(games:Game[]):Promise<void>{
  const db=await getDatabase();
  await db.runAsync('INSERT OR REPLACE INTO cache (key, value) VALUES (?, ?)',[CACHE_KEY,value]);
 }
+
+export async function loadCachedArtwork(key:string):Promise<string|undefined>{if(Platform.OS==='web')return undefined;const db=await getDatabase();return (await db.getFirstAsync<{value:string}>('SELECT value FROM artwork WHERE key = ?',[key]))?.value;}
+export async function saveCachedArtwork(key:string,value:string):Promise<void>{if(Platform.OS==='web')return;const db=await getDatabase();await db.runAsync('INSERT OR REPLACE INTO artwork (key, value) VALUES (?, ?)',[key,value]);}
