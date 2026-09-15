@@ -27,6 +27,7 @@ const STANDARD_FAVOURITES_ID='standard-favourites';
 const STANDARD_LAST_PLAYED_ID='standard-last-played';
 function omitCollectionArtwork(records:Game[]):Game[]{return records.map(game=>game.title==='Super Turrican Collection'?{...game,image:undefined,scene:undefined}:game);}
 function tap() {if(Platform.OS!=='web')void Haptics.selectionAsync().catch(()=>{});}
+function warmMiSTerArtwork(url:string,records:Game[]){records.filter(game=>game.remoteMediaId!==undefined&&game.remoteHasArtwork!==false).sort((a,b)=>a.title.localeCompare(b.title)).slice(0,80).forEach(game=>{const imageTypes=game.category==='Arcade'?['thumbnail','boxart','boxart3d','image','screenshot']:['thumbnail','boxart','boxart3d','image'];void readMiSTerArtwork(url,game.remoteMediaId!,imageTypes,128).catch(()=>{});});}
 export function Label({children}:{children:React.ReactNode}) {return <Text style={s.label}>{children}</Text>;}
 export default function App() {
  const [loaded,error]=useFonts({BodoniBold:require('@expo-google-fonts/bodoni-moda/700Bold/BodoniModa_700Bold.ttf'),BodoniItalic:require('@expo-google-fonts/bodoni-moda/500Medium_Italic/BodoniModa_500Medium_Italic.ttf'),DMSans:require('@expo-google-fonts/dm-sans/400Regular/DMSans_400Regular.ttf'),DMMedium:require('@expo-google-fonts/dm-sans/500Medium/DMSans_500Medium.ttf'),DMBold:require('@expo-google-fonts/dm-sans/700Bold/DMSans_700Bold.ttf')});
@@ -86,7 +87,7 @@ function Tapdeck() {
   catch{notify('Could not save that playlist. Please try again.');}
  }
  async function connectMiSTer(refresh=false){
-  try{setConnecting(true);Keyboard.dismiss();const url=normaliseMiSTerUrl(misterUrl);await checkMiSTer(url);const found=await readMiSTerLibrary(url);if(!found.length)throw new Error('Zaparoo has not indexed any games yet. Let its first library scan finish, then refresh.');await Promise.all([AsyncStorage.setItem(MISTER_URL_KEY,url),AsyncStorage.setItem(MISTER_LIBRARY_KEY,JSON.stringify(found.map(({image,scene,...game})=>game)))]);setMiSTerUrl(url);setLibraryRecords(found);setConnected(true);setPanel(null);notify(`${found.length} games read from your MiSTer.`);return true;}
+  try{setConnecting(true);Keyboard.dismiss();const url=normaliseMiSTerUrl(misterUrl);await checkMiSTer(url);const found=await readMiSTerLibrary(url);if(!found.length)throw new Error('Zaparoo has not indexed any games yet. Let its first library scan finish, then refresh.');await Promise.all([AsyncStorage.setItem(MISTER_URL_KEY,url),AsyncStorage.setItem(MISTER_LIBRARY_KEY,JSON.stringify(found.map(({image,scene,...game})=>game)))]);setMiSTerUrl(url);setLibraryRecords(found);setConnected(true);setPanel(null);void warmMiSTerArtwork(url,found);notify(`${found.length} games read from your MiSTer.`);return true;}
   catch(error){notify(error instanceof Error?error.message:'Could not connect to your MiSTer.');if(refresh)setConnected(false);return false;}
   finally{setConnecting(false);}
  }
