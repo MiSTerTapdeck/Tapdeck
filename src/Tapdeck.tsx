@@ -44,6 +44,7 @@ function Tapdeck() {
  const [libraryRecords,setLibraryRecords]=useState<Game[]>(games);
  const libraryGames=useMemo(()=>omitCollectionArtwork(libraryRecords),[libraryRecords]);
  const [misterUrl,setMiSTerUrl]=useState('');const [connected,setConnected]=useState(false);const [connecting,setConnecting]=useState(false);
+ const [shouldAutoConnect,setShouldAutoConnect]=useState(false);
  const systems=useMemo(()=>systemsForCategory(libraryGames,category),[libraryGames,category]);
  const genres=useMemo(()=>genresForCategory(libraryGames,category),[libraryGames,category]);
  const [sort,setSort]=useState<SortOrder>('collection');const [savedOnly,setSavedOnly]=useState(false);
@@ -61,7 +62,7 @@ function Tapdeck() {
  function showPanel(next:Exclude<typeof panel,null>){Keyboard.dismiss();setPanel(next);}
  useEffect(()=>{
   let active=true;
-  void AsyncStorage.removeItem('tapdeck.artwork-bridge.v1');Promise.all([AsyncStorage.getItem(SAVED_KEY),AsyncStorage.getItem(PLAYLISTS_KEY),AsyncStorage.getItem(MISTER_URL_KEY),AsyncStorage.getItem(PLAY_HISTORY_KEY)]).then(([savedRaw,playlistsRaw,url,historyRaw])=>{if(active){const validIds=games.map(g=>g.id);setSaved(parseSaved(savedRaw,validIds));setPlaylists(parsePlaylists(playlistsRaw,validIds));setPlayHistory(parsePlayHistory(historyRaw,validIds));setMiSTerUrl(url??'');}}).catch(()=>{if(active)notify('Your saved binder could not be loaded.');}).finally(()=>{if(active)setReady(true);});
+  void AsyncStorage.removeItem('tapdeck.artwork-bridge.v1');Promise.all([AsyncStorage.getItem(SAVED_KEY),AsyncStorage.getItem(PLAYLISTS_KEY),AsyncStorage.getItem(MISTER_URL_KEY),AsyncStorage.getItem(PLAY_HISTORY_KEY)]).then(([savedRaw,playlistsRaw,url,historyRaw])=>{if(active){const validIds=games.map(g=>g.id);setSaved(parseSaved(savedRaw,validIds));setPlaylists(parsePlaylists(playlistsRaw,validIds));setPlayHistory(parsePlayHistory(historyRaw,validIds));setMiSTerUrl(url??'');setShouldAutoConnect(!!url);}}).catch(()=>{if(active)notify('Your saved binder could not be loaded.');}).finally(()=>{if(active)setReady(true);});
   void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);
   const sub=AccessibilityInfo.addEventListener('reduceMotionChanged',setReducedMotion);
   return()=>{active=false;sub.remove();if(noticeTimer.current)clearTimeout(noticeTimer.current);};
@@ -72,7 +73,7 @@ function Tapdeck() {
   if(Platform.OS==='web'){const handler=(e:KeyboardEvent)=>{if(e.key==='Escape')back();};document.addEventListener('keydown',handler);return()=>{subscription.remove();document.removeEventListener('keydown',handler);};}
   return()=>subscription.remove();
  },[selected,panel]);
- useEffect(()=>{if(ready&&misterUrl&&!connected&&!connecting)void connectMiSTer();},[ready]);
+ useEffect(()=>{if(!ready||!shouldAutoConnect||!misterUrl||connected||connecting)return;setShouldAutoConnect(false);void connectMiSTer();},[ready,shouldAutoConnect,misterUrl,connected,connecting]);
  async function toggleSaved(game:Game){
   if(!ready||saving.current)return;saving.current=true;tap();
   const next=saved.includes(game.id)?saved.filter(id=>id!==game.id):[...saved,game.id];
