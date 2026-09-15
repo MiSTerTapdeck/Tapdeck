@@ -35,3 +35,5 @@ export async function saveCachedMiSTerLibrary(games:Game[]):Promise<void>{
 
 export async function loadCachedArtwork(key:string):Promise<string|undefined>{if(Platform.OS==='web')return undefined;const db=await getDatabase();return (await db.getFirstAsync<{value:string}>('SELECT value FROM artwork WHERE key = ?',[key]))?.value;}
 export async function saveCachedArtwork(key:string,value:string):Promise<void>{if(Platform.OS==='web')return;const db=await getDatabase();await db.runAsync('INSERT OR REPLACE INTO artwork (key, value) VALUES (?, ?)',[key,value]);}
+
+export async function getCachedArtworkStats():Promise<{count:number;bytes:number}>{if(Platform.OS==='web')return {count:0,bytes:0};const db=await getDatabase();const row=await db.getFirstAsync<{count:number;bytes:number}>('SELECT COUNT(*) AS count, COALESCE(SUM(LENGTH(value)), 0) AS bytes FROM artwork');return {count:Number(row?.count??0),bytes:Number(row?.bytes??0)};}
