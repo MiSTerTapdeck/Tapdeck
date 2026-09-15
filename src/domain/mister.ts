@@ -15,12 +15,12 @@ export function normaliseMiSTerUrl(value:string){
  return `${parsed.protocol}//${parsed.host}${parsed.port?'':':7497'}`;
 }
 function socketUrl(base:string){return base.replace(/^http:/i,'ws:').replace(/^https:/i,'wss:')+'/api/v0.1';}
-function rpc<T>(base:string,method:string,params?:unknown):Promise<T>{
+function rpc<T>(base:string,method:string,params?:unknown,timeoutMs=9000):Promise<T>{
  return new Promise((resolve,reject)=>{
   let settled=false;let socket:WebSocket;
   const requestId=`tapdeck-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
   const finish=(error?:Error,value?:T)=>{if(settled)return;settled=true;clearTimeout(timeout);try{socket.close();}catch{}if(error)reject(error);else resolve(value as T);};
-  const timeout=setTimeout(()=>finish(new Error('Zaparoo did not respond. Check that its service is running on your MiSTer.')),9000);
+  const timeout=setTimeout(()=>finish(new Error('Zaparoo did not respond. Check that its service is running on your MiSTer.')),timeoutMs);
   try{socket=new WebSocket(socketUrl(base));}catch{clearTimeout(timeout);reject(new Error('Could not reach Zaparoo on your MiSTer.'));return;}
   socket.onopen=()=>socket.send(JSON.stringify({jsonrpc:'2.0',id:requestId,method,...(params===undefined?{}:{params})}));
   socket.onmessage=event=>{try{const response=JSON.parse(String(event.data)) as RpcResponse<T>;if(response.id!==requestId)return;if(response.error)finish(new Error(response.error.message??'Zaparoo could not complete that request.'));else finish(undefined,response.result);}catch{finish(new Error('Zaparoo returned an unreadable response.'));}};
@@ -44,13 +44,23 @@ export async function readMiSTerLibrary(url:string):Promise<Game[]>{
  const found:RemoteGame[]=[];let cursor:string|undefined;
  do{const page=await rpc<SearchResult>(url,'media.search',{query:'',maxResults:1000,...(cursor?{cursor}:{})});found.push(...(page.results??[]));cursor=page.pagination?.hasNextPage?page.pagination.nextCursor:undefined;}while(cursor);
  const unique=new Map<string,{game:RemoteGame;record:Game}>();
- found.forEach(game=>{if(!game.path||!game.name||!game.zapScript)return;const tags=game.tags??[];const tag=(...types:string[])=>tags.find(item=>types.includes(item.type.toLowerCase()))?.tag;const record:Game={id:idFor(game.path),title:game.name,system:game.system?.name||'MiSTer',category:categoryFor(game.system?.category),year:Number(tag('year','releasedate'))||null,developer:tag('developer','publisher','manufacturer')??'Not listed',genre:tag('genre','gamegenre')??'Not listed',players:tag('players')??'Not listed',description:`Found on your MiSTer in ${game.system?.name||'your collection'}.`,remotePath:game.zapScript,remoteMediaId:game.mediaId};const key=`${game.system?.id??record.system}::${game.name.trim().toLocaleLowerCase()}`;const current=unique.get(key);const better=!current||(!current.game.hasCover&&!!game.hasCover)||(!current.game.path.includes('/media/usb')&&game.path.includes('/media/usb'));if(better)unique.set(key,{game,record});});
- return [...unique.values()].map(item=>item.record).sort((a,b)=>a.title.localeCompare(b.title));
+ found.forEach(game=>{if(!game.path||!game.name||!game.zapScript)return;const tags=game.tags??[];const tag=(...types:string[])=>tags.find(item=>types.includes(item.type.toLowerCase()))?.tag;const record:Game={id:game.mediaId!==undefined?`mister-media-${game.mediaId}`:idFor(game.path),title:game.name,system:game.system?.name||'MiSTer',category:categoryFor(game.system?.category),year:Number(tag('year','releasedate'))||null,developer:tag('developer','publisher','manufacturer')??'Not listed',genre:tag('genre','gamegenre')??'Not listed',players:tag('players')??'Not listed',description:`Found on your MiSTer in ${game.system?.name||'your collection'}.`,remotePath:game.zapScript,remoteMediaId:game.mediaId};const key=`${game.system?.id??record.system}::${game.name.trim().toLocaleLowerCase()}`;const current=unique.get(key);const better=!current||(!current.game.hasCover&&!!game.hasCover)||(!current.game.path.includes('/media/usb')&&game.path.includes('/media/usb'));if(better)unique.set(key,{game,record});});
+ const recordIds=new Set<string>();
+ return [...unique.values()].map(item=>item.record).filter(record=>!recordIds.has(record.id)&&!!recordIds.add(record.id)).sort((a,b)=>a.title.localeCompare(b.title));
 }
 export async function launchMiSTerGame(url:string,zapScript:string){await rpc<null>(url,'run',{text:zapScript});}
-export async function readMiSTerArtwork(url:string,mediaId:number,imageTypes=['image','thumbnail','boxart','boxart3d','screenshot'],maxSize=768):Promise<ImageSourcePropType|undefined>{
- const result=await rpc<{data?:string;contentType?:string}>(url,'media.image',{mediaId,imageTypes,maxSize});
- return result.data?{uri:`data:${result.contentType??'image/webp'};base64,${result.data}`} :undefined;
+const artworkCache=new Map<string,ImageSourcePropType|undefined>();
+const pendingArtwork=new Map<string,Promise<ImageSourcePropType|undefined>>();
+const artworkQueue:(()=>void)[]=[];
+let activeArtworkRequests=0;
+function queueArtwork<T>(work:()=>Promise<T>):Promise<T>{return new Promise((resolve,reject)=>{const run=()=>{activeArtworkRequests+=1;void work().then(resolve,reject).finally(()=>{activeArtworkRequests-=1;artworkQueue.shift()?.();});};if(activeArtworkRequests<2)run();else artworkQueue.push(run);});}
+export function readMiSTerArtwork(url:string,mediaId:number,imageTypes=['image','thumbnail','boxart','boxart3d','screenshot'],maxSize=768):Promise<ImageSourcePropType|undefined>{
+ const key=`${url}|${mediaId}|${imageTypes.join(',')}|${maxSize}`;
+ if(artworkCache.has(key))return Promise.resolve(artworkCache.get(key));
+ const pending=pendingArtwork.get(key);if(pending)return pending;
+ const request=queueArtwork(async()=>{const result=await rpc<{data?:string;contentType?:string}>(url,'media.image',{mediaId,imageTypes,maxSize},20000);const image=result.data?{uri:`data:${result.contentType??'image/webp'};base64,${result.data}`} :undefined;artworkCache.set(key,image);return image;});
+ pendingArtwork.set(key,request);void request.finally(()=>pendingArtwork.delete(key));
+ return request;
 }
 export async function readMiSTerMetadata(url:string,mediaId:number):Promise<Partial<Game>>{
  const result=await rpc<{media?:{title?:{tags?:{type:string;tag:string}[];properties?:Record<string,{text?:string}>};properties?:Record<string,{text?:string}>}}>(url,'media.meta',{mediaId});
