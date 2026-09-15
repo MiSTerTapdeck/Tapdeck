@@ -9,7 +9,7 @@ import {readMiSTerArtwork} from '../domain/mister';
 export function GameCard({game,index,saved,onPress,reducedMotion,artworkUrl}:{game:Game;index:number;saved:boolean;onPress:()=>void;reducedMotion:boolean;artworkUrl?:string}) {
  const scale=useRef(new Animated.Value(1)).current;
  const [remoteArtwork,setRemoteArtwork]=useState<Game['image']>();
- useEffect(()=>{let active=true;if(!artworkUrl||!game.remoteMediaId||game.image||game.remoteHasArtwork===false)return;void readMiSTerArtwork(artworkUrl,game.remoteMediaId,['image','thumbnail','boxart','boxart3d'],512).then(image=>{if(active&&image)setRemoteArtwork(image);}).catch(()=>{});return()=>{active=false;};},[artworkUrl,game.id,game.image,game.remoteMediaId,game.remoteHasArtwork]);
+ useEffect(()=>{let active=true;if(!artworkUrl||!game.remoteMediaId||game.image||game.remoteHasArtwork===false)return;const imageTypes=game.category==='Arcade'?['image','thumbnail','boxart','boxart3d','screenshot']:['image','thumbnail','boxart','boxart3d'];void readMiSTerArtwork(artworkUrl,game.remoteMediaId,imageTypes,512).then(image=>{if(active&&image)setRemoteArtwork(image);}).catch(()=>{});return()=>{active=false;};},[artworkUrl,game.id,game.image,game.remoteMediaId,game.remoteHasArtwork,game.category]);
  const vintage=isVintage(game.year);
  const artwork=game.image??remoteArtwork??fallbackArtwork(game.genre);
  const animate=(toValue:number)=>{if(!reducedMotion)Animated.spring(scale,{toValue,useNativeDriver:Platform.OS!=='web',speed:35,bounciness:0}).start();};
