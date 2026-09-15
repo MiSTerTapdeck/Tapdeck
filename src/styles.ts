@@ -9,7 +9,7 @@ export const s=StyleSheet.create({
  frame:{backgroundColor:c.paper,overflow:'hidden'},screen:{flex:1,position:'relative'},
  rail:{width:295},railLogo:{fontFamily:fonts.display,fontSize:78,letterSpacing:-5,color:c.ink,marginTop:8},railRule:{height:2,width:44,backgroundColor:c.orange,marginTop:24,marginBottom:30},
  railTitle:{fontFamily:fonts.italic,fontSize:30,lineHeight:40,color:c.ink},railCopy:{fontFamily:fonts.body,fontSize:15,lineHeight:25,color:c.muted,marginTop:20},railSmall:{fontFamily:fonts.body,fontSize:12,lineHeight:21,color:c.muted,marginTop:8},
- list:{paddingHorizontal:20,paddingBottom:12},compactList:{paddingHorizontal:20,paddingBottom:12},row:{gap:16,marginBottom:22},
+ list:{paddingHorizontal:20,paddingBottom:12},libraryHeader:{backgroundColor:c.paper,paddingTop:1,paddingBottom:9},compactList:{paddingHorizontal:20,paddingBottom:12},row:{gap:16,marginBottom:22},
  brandRow:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginTop:10},logo:{fontFamily:fonts.display,fontSize:60,lineHeight:77,letterSpacing:-3.3,color:c.ink},
  iconButton:{width:44,height:44,alignItems:'center',justifyContent:'center'},
  connection:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginTop:-1,marginBottom:22},connectionLeft:{flexDirection:'row',alignItems:'center',gap:7},sampleDot:{width:7,height:7,borderWidth:1.5,borderColor:'#94723E',borderRadius:5,marginTop:1},connectionText:{fontFamily:fonts.medium,fontSize:12,color:'#756144'},connectionCount:{fontFamily:fonts.body,fontSize:11,color:c.muted},
