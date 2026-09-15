@@ -7,6 +7,7 @@ const LEGACY_KEY='tapdeck.mister-library.v1';
 const CACHE_KEY='mister-library';
 let database:SQLite.SQLiteDatabase|undefined;
 
+function parseGames(raw:string):Game[]{try{return validGames(JSON.parse(raw));}catch{return [];}}
 function validGames(value:unknown):Game[]{
  if(!Array.isArray(value))return [];
  return value.filter((game):game is Game=>!!game&&typeof game==='object'&&typeof game.id==='string'&&typeof game.title==='string'&&typeof game.system==='string'&&['Consoles','Computers','Arcade'].includes(game.category)&&typeof game.remotePath==='string');
@@ -16,13 +17,13 @@ async function getDatabase(){
  return database;
 }
 export async function loadCachedMiSTerLibrary():Promise<Game[]>{
- if(Platform.OS==='web')return validGames(JSON.parse(await AsyncStorage.getItem(LEGACY_KEY)??'[]'));
+ if(Platform.OS==='web')return parseGames(await AsyncStorage.getItem(LEGACY_KEY)??'[]');
  const db=await getDatabase();
  const record=await db.getFirstAsync<{value:string}>('SELECT value FROM cache WHERE key = ?',[CACHE_KEY]);
- if(record?.value)return validGames(JSON.parse(record.value));
+ if(record?.value)return parseGames(record.value);
  const legacy=await AsyncStorage.getItem(LEGACY_KEY);
  if(!legacy)return [];
- const games=validGames(JSON.parse(legacy));
+ const games=parseGames(legacy);
  if(games.length)await saveCachedMiSTerLibrary(games);
  return games;
 }
