@@ -10,7 +10,7 @@ import {categories,fallbackArtwork,fallbackThumbnail,games,type Category,type Ga
 import {filterGames,parseSaved,type SortOrder} from './domain/library';
 import {parsePlaylists,reorderIds,type Playlist} from './domain/playlists';
 import {recommendGames} from './domain/discover';
-import {checkMiSTer,launchMiSTerGame,normaliseMiSTerUrl,clearMiSTerArtworkMemoryCache,readCachedMiSTerThumbnail,readMiSTerLibrary,readMiSTerMetadata,readMiSTerThumbnail} from './domain/mister';
+import {checkMiSTer,launchMiSTerConsoleFallback,launchMiSTerGame,normaliseMiSTerUrl,clearMiSTerArtworkMemoryCache,readCachedMiSTerThumbnail,readMiSTerLibrary,readMiSTerMetadata,readMiSTerThumbnail} from './domain/mister';
 import {getCachedArtworkBySystem,getCachedArtworkStats,loadCachedMiSTerLibrary,saveCachedMiSTerLibrary} from './domain/misterCache';
 import {GameCard} from './components/GameCard';
 import {GameRow} from './components/GameRow';
@@ -99,7 +99,7 @@ function Tapdeck() {
  async function launch(game:Game){
   if(!game.remotePath){showPanel('device');notify('This game does not have a MiSTer launch command.');return false;}
   if(!connected){const reconnected=await reconnectSavedMiSTer();if(!reconnected){showPanel('device');notify('Tapdeck could not reconnect to your MiSTer.');return false;}}
-  try{await launchMiSTerGame(normaliseMiSTerUrl(misterUrl),game.remotePath);notify(`Launching ${game.title} on MiSTer…`);return true;}catch(error){notify(error instanceof Error?error.message:'MiSTer could not launch that game.');return false;}
+  try{const url=normaliseMiSTerUrl(misterUrl);const usedFallback=await launchMiSTerConsoleFallback(url,game);if(!usedFallback)await launchMiSTerGame(url,game.remotePath);notify(`Launching ${game.title} on MiSTer…`);return true;}catch(error){notify(error instanceof Error?error.message:'MiSTer could not launch that game.');return false;}
  }
  function createPlaylist(){
   const title=playlistName.trim();if(!title)return;

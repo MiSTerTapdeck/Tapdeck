@@ -45,11 +45,23 @@ export async function readMiSTerLibrary(url:string,onProgress?:(found:number)=>v
  const found:RemoteGame[]=[];let cursor:string|undefined;
  do{const page=await rpc<SearchResult>(url,'media.search',{query:'',maxResults:1000,...(cursor?{cursor}:{})});found.push(...(page.results??[]));onProgress?.(found.length);cursor=page.pagination?.hasNextPage?page.pagination.nextCursor:undefined;}while(cursor);
  const unique=new Map<string,{game:RemoteGame;record:Game}>();
- found.forEach(game=>{if(!game.path||!game.name||!game.zapScript)return;const tags=game.tags??[];const tag=(...types:string[])=>tags.find(item=>types.includes(item.type.toLowerCase()))?.tag;const record:Game={id:game.mediaId!==undefined?`mister-media-${game.mediaId}`:idFor(game.path),title:game.name,system:game.system?.name||'MiSTer',category:categoryFor(game.system?.category),year:Number(tag('year','releasedate'))||null,developer:tag('developer','publisher','manufacturer')??'Not listed',genre:tag('genre','gamegenre')??'Not listed',players:tag('players')??'Not listed',description:`Found on your MiSTer in ${game.system?.name||'your collection'}.`,remotePath:game.zapScript,remoteMediaId:game.mediaId,remoteHasArtwork:game.hasCover};const key=`${game.system?.id??record.system}::${game.name.trim().toLocaleLowerCase()}`;const current=unique.get(key);const better=!current||(!current.game.hasCover&&!!game.hasCover)||(!current.game.path.includes('/media/usb')&&game.path.includes('/media/usb'));if(better)unique.set(key,{game,record});});
+ found.forEach(game=>{if(!game.path||!game.name||!game.zapScript)return;const tags=game.tags??[];const tag=(...types:string[])=>tags.find(item=>types.includes(item.type.toLowerCase()))?.tag;const record:Game={id:game.mediaId!==undefined?`mister-media-${game.mediaId}`:idFor(game.path),title:game.name,system:game.system?.name||'MiSTer',category:categoryFor(game.system?.category),year:Number(tag('year','releasedate'))||null,developer:tag('developer','publisher','manufacturer')??'Not listed',genre:tag('genre','gamegenre')??'Not listed',players:tag('players')??'Not listed',description:`Found on your MiSTer in ${game.system?.name||'your collection'}.`,remotePath:game.zapScript,remoteFilePath:game.path,remoteSystemId:game.system?.id,remoteMediaId:game.mediaId,remoteHasArtwork:game.hasCover};const key=`${game.system?.id??record.system}::${game.name.trim().toLocaleLowerCase()}`;const current=unique.get(key);const better=!current||(!current.game.hasCover&&!!game.hasCover)||(!current.game.path.includes('/media/usb')&&game.path.includes('/media/usb'));if(better)unique.set(key,{game,record});});
  const recordIds=new Set<string>();
  return [...unique.values()].map(item=>item.record).filter(record=>!recordIds.has(record.id)&&!!recordIds.add(record.id)).sort((a,b)=>a.title.localeCompare(b.title));
 }
 export async function launchMiSTerGame(url:string,zapScript:string){await rpc<null>(url,'run',{text:zapScript});}
+function xmlEscape(value:string){return value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+/** Temporary direct MGL route for the verified USB NES path issue. */
+export async function launchMiSTerConsoleFallback(url:string,game:Game):Promise<boolean>{
+ if(game.category!=='Consoles'||game.remoteSystemId!=='NES'||!game.remoteFilePath)return false;
+ const marker='NES/';const position=game.remoteFilePath.replace(/\\/g,'/').indexOf(marker);
+ if(position<0)return false;
+ const relative=game.remoteFilePath.replace(/\\/g,'/').slice(position+marker.length);
+ if(!relative.toLowerCase().endsWith('.nes'))return false;
+ const content=`<rbf>_Console/NES</rbf><file delay="2" type="f" index="1" path="${xmlEscape(relative)}"/>`;
+ await rpc<null>(url,'run',{text:`**mister.mgl:${content}`});
+ return true;
+}
 const artworkCache=new Map<string,ImageSourcePropType|undefined>();
 const pendingArtwork=new Map<string,Promise<ImageSourcePropType|undefined>>();
 const artworkQueue:(()=>void)[]=[];
