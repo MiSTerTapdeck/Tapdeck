@@ -53,10 +53,17 @@ export async function launchMiSTerGame(url:string,zapScript:string){await rpc<nu
 function xmlEscape(value:string){return value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 /** Temporary direct MGL route for the verified USB NES path issue. */
 export async function launchMiSTerConsoleFallback(url:string,game:Game):Promise<boolean>{
- if(game.category!=='Consoles'||game.remoteSystemId!=='NES'||!game.remoteFilePath)return false;
- const marker='NES/';const position=game.remoteFilePath.replace(/\\/g,'/').indexOf(marker);
+ const systemId=game.remoteSystemId??game.system;
+ if(game.category!=='Consoles'||systemId!=='NES')return false;
+ let mediaPath=game.remoteFilePath;
+ if(!mediaPath&&game.remoteMediaId!==undefined){
+  const result=await rpc<SearchResult>(url,'media.search',{query:game.title,maxResults:50});
+  mediaPath=result.results?.find(item=>item.mediaId===game.remoteMediaId)?.path;
+ }
+ if(!mediaPath)return false;
+ const marker='NES/';const position=mediaPath.replace(/\\/g,'/').indexOf(marker);
  if(position<0)return false;
- const relative=game.remoteFilePath.replace(/\\/g,'/').slice(position+marker.length);
+ const relative=mediaPath.replace(/\\/g,'/').slice(position+marker.length);
  if(!relative.toLowerCase().endsWith('.nes'))return false;
  const content=`<rbf>_Console/NES</rbf><file delay="2" type="f" index="1" path="${xmlEscape(relative)}"/>`;
  await rpc<null>(url,'run',{text:`**mister.mgl:${content}`});
