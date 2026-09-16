@@ -56,9 +56,9 @@ export async function launchMiSTerConsoleFallback(url:string,game:Game):Promise<
  const systemId=game.remoteSystemId??game.system;
  if(game.category!=='Consoles'||systemId!=='NES')return false;
  let mediaPath=game.remoteFilePath;
- if(!mediaPath&&game.remoteMediaId!==undefined){
+ if(!mediaPath){
   const result=await rpc<SearchResult>(url,'media.search',{query:game.title,maxResults:50});
-  mediaPath=result.results?.find(item=>item.mediaId===game.remoteMediaId)?.path;
+  mediaPath=result.results?.find(item=>item.mediaId===game.remoteMediaId||(item.name===game.title&&item.system?.id===systemId))?.path;
  }
  if(!mediaPath)return false;
  const marker='NES/';const position=mediaPath.replace(/\\/g,'/').indexOf(marker);
