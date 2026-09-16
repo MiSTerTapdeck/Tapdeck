@@ -50,26 +50,6 @@ export async function readMiSTerLibrary(url:string,onProgress?:(found:number)=>v
  return [...unique.values()].map(item=>item.record).filter(record=>!recordIds.has(record.id)&&!!recordIds.add(record.id)).sort((a,b)=>a.title.localeCompare(b.title));
 }
 export async function launchMiSTerGame(url:string,zapScript:string){await rpc<null>(url,'run',{text:zapScript});}
-function xmlEscape(value:string){return value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-/** Temporary direct MGL route for the verified USB NES path issue. */
-export async function launchMiSTerConsoleFallback(url:string,game:Game):Promise<boolean>{
- const systemId=game.remoteSystemId??game.system;
- const isNes=systemId==='NES'||game.system==='NES'||game.remotePath?.startsWith('@NES/')===true;
- if(game.category!=='Consoles'||!isNes)return false;
- let mediaPath=game.remoteFilePath;
- if(!mediaPath){
-  const result=await rpc<SearchResult>(url,'media.search',{query:game.title,maxResults:50});
-  mediaPath=result.results?.find(item=>item.mediaId===game.remoteMediaId||(item.name===game.title&&(item.system?.id===systemId||item.system?.id==='NES')))?.path;
- }
- if(!mediaPath)return false;
- const marker='NES/';const position=mediaPath.replace(/\\/g,'/').indexOf(marker);
- if(position<0)return false;
- const relative=mediaPath.replace(/\\/g,'/').slice(position+marker.length);
- if(!relative.toLowerCase().endsWith('.nes'))return false;
- const content=`<rbf>_Console/NES</rbf><file delay="2" type="f" index="1" path="${xmlEscape(relative)}"/>`;
- await rpc<null>(url,'run',{text:`**mister.mgl:${content}`});
- return true;
-}
 const artworkCache=new Map<string,ImageSourcePropType|undefined>();
 const pendingArtwork=new Map<string,Promise<ImageSourcePropType|undefined>>();
 const artworkQueue:(()=>void)[]=[];
