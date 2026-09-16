@@ -54,11 +54,12 @@ function xmlEscape(value:string){return value.replace(/&/g,'&amp;').replace(/</g
 /** Temporary direct MGL route for the verified USB NES path issue. */
 export async function launchMiSTerConsoleFallback(url:string,game:Game):Promise<boolean>{
  const systemId=game.remoteSystemId??game.system;
- if(game.category!=='Consoles'||systemId!=='NES')return false;
+ const isNes=systemId==='NES'||game.system==='NES'||game.remotePath?.startsWith('@NES/')===true;
+ if(game.category!=='Consoles'||!isNes)return false;
  let mediaPath=game.remoteFilePath;
  if(!mediaPath){
   const result=await rpc<SearchResult>(url,'media.search',{query:game.title,maxResults:50});
-  mediaPath=result.results?.find(item=>item.mediaId===game.remoteMediaId||(item.name===game.title&&item.system?.id===systemId))?.path;
+  mediaPath=result.results?.find(item=>item.mediaId===game.remoteMediaId||(item.name===game.title&&(item.system?.id===systemId||item.system?.id==='NES')))?.path;
  }
  if(!mediaPath)return false;
  const marker='NES/';const position=mediaPath.replace(/\\/g,'/').indexOf(marker);
