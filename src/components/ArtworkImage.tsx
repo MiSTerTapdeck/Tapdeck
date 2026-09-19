@@ -8,10 +8,10 @@ import {fonts,palette as c} from '../theme';
 type Props={game:Game;style?:StyleProp<ImageStyle>;misterUrl?:string;allowDownload?:boolean;resizeMode?:'cover'|'contain';preferSnap?:boolean;onResolved?:(source:ImageSourcePropType)=>void};
 
 export function ArtworkImage({game,style,misterUrl,allowDownload=true,resizeMode='cover',preferSnap=false,onResolved}:Props){
- const [source,setSource]=useState<ImageSourcePropType|undefined>(game.image??fallbackThumbnail(game.genre));
+ const [source,setSource]=useState<ImageSourcePropType|undefined>(preferSnap?fallbackThumbnail(game.genre):(game.image??fallbackThumbnail(game.genre)));
  useEffect(()=>{
   let active=true;
-  setSource(game.image??fallbackThumbnail(game.genre));
+  setSource(preferSnap?fallbackThumbnail(game.genre):(game.image??fallbackThumbnail(game.genre)));
   if(game.image&&game.remoteMediaId===undefined)return()=>{active=false;};
   const publish=(value:ImageSourcePropType|undefined)=>{if(active&&value){setSource(value);onResolved?.(value);return true;}return false;};
   void (async()=>{
