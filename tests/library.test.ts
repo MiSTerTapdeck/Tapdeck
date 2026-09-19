@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {filterGames,genresForCategory,isVintage,parseSaved,systemsForCategory} from '../src/domain/library.ts';
+import {primaryGenre} from '../src/domain/genre.ts';
 import {parsePlaylists,reorderIds} from '../src/domain/playlists.ts';
 import {recommendGames} from '../src/domain/discover.ts';
 import type {Game} from '../src/data/library';
@@ -45,6 +46,13 @@ test('genre options respect the active family and genre filter intersects other 
  assert.deepEqual(genresForCategory(seed,'Computers'),['Action']);
  assert.deepEqual(filterGames(seed,'','Consoles','collection',false,[],null,'Platform').map(g=>g.id),['a']);
  assert.deepEqual(filterGames(seed,'Nintendo','Consoles','collection',true,['a'],null,'Platform').map(g=>g.id),['a']);
+});
+test('primary genres normalize Zaparoo genre taxonomy and preserve full genre search',()=>{
+ assert.equal(primaryGenre('sports-football-soccer'), 'Sports');
+ assert.equal(primaryGenre('racing,-drivingracing-fpv'), 'Racing');
+ assert.equal(primaryGenre('action-rpgrole-playing-game'), 'Action');
+ assert.deepEqual(genresForCategory([{...seed[0],genre:'sports-football-soccer'}],'Consoles'),['Sports']);
+ assert.deepEqual(filterGames([{...seed[0],genre:'sports-football-soccer'}],'','Consoles','collection',false,[],null,'Sports').map(g=>g.title),['Super Metroid']);
 });
 test('playlist storage removes invalid games and keeps a stable game order',()=>{
  const parsed=parsePlaylists('[{"id":"weekend","title":" Weekend picks ","gameIds":["b","a","b","gone"],"createdAt":12},{"id":"weekend","title":"Duplicate","gameIds":[]}]',['a','b']);

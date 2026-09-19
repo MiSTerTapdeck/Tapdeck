@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {palette as c} from './theme';
 import {categories,fallbackArtwork,fallbackThumbnail,games,type Category,type Game} from './data/library';
 import {filterGames,parseSaved,type SortOrder} from './domain/library';
+import {primaryGenre} from './domain/genre';
 import {parsePlaylists,reorderIds,type Playlist} from './domain/playlists';
 import {recommendGames} from './domain/discover';
 import {checkMiSTer,launchMiSTerGame,normaliseMiSTerUrl,clearMiSTerArtworkMemoryCache,readCachedMiSTerThumbnail,readMiSTerLibrary,readMiSTerMetadata,readMiSTerThumbnail} from './domain/mister';
@@ -28,7 +29,7 @@ const STANDARD_FAVOURITES_ID='standard-favourites';
 const STANDARD_LAST_PLAYED_ID='standard-last-played';
 function omitCollectionArtwork(records:Game[]):Game[]{return records.map(game=>game.title==='Super Turrican Collection'?{...game,image:undefined,scene:undefined}:game);}
 function tap() {if(Platform.OS!=='web')void Haptics.selectionAsync().catch(()=>{});}
-function buildLibraryFacets(records:Game[]){const systems:{Arcade:string[];Consoles:string[];Computers:string[]}={Arcade:[],Consoles:[],Computers:[]};const systemSets={Arcade:new Set<string>(),Consoles:new Set<string>(),Computers:new Set<string>()};const genreSets=new Map<string,Set<string>>();for(const game of records){systemSets[game.category].add(game.system);for(const category of [game.category,'All'])for(const system of [game.system,'*']){const key=`${category}|${system}`;const set=genreSets.get(key)??new Set<string>();if(game.genre&&game.genre!=='Not listed')set.add(game.genre);genreSets.set(key,set);}}for(const category of ['Arcade','Consoles','Computers'] as const)systems[category]=[...systemSets[category]].sort((a,b)=>a.localeCompare(b));return {systems,genres:(category:Category,system:string|null)=>[...(genreSets.get(`${category}|${system??'*'}`)??[])].sort((a,b)=>a.localeCompare(b))};}
+function buildLibraryFacets(records:Game[]){const systems:{Arcade:string[];Consoles:string[];Computers:string[]}={Arcade:[],Consoles:[],Computers:[]};const systemSets={Arcade:new Set<string>(),Consoles:new Set<string>(),Computers:new Set<string>()};const genreSets=new Map<string,Set<string>>();for(const game of records){systemSets[game.category].add(game.system);for(const category of [game.category,'All'])for(const system of [game.system,'*']){const key=`${category}|${system}`;const set=genreSets.get(key)??new Set<string>();const genre=primaryGenre(game.genre);if(genre!=='Not listed')set.add(genre);genreSets.set(key,set);}}for(const category of ['Arcade','Consoles','Computers'] as const)systems[category]=[...systemSets[category]].sort((a,b)=>a.localeCompare(b));return {systems,genres:(category:Category,system:string|null)=>[...(genreSets.get(`${category}|${system??'*'}`)??[])].sort((a,b)=>a.localeCompare(b))};}
 function warmMiSTerArtwork(url:string,records:Game[]){records.filter(game=>game.remoteMediaId!==undefined).sort((a,b)=>a.title.localeCompare(b.title)).slice(0,80).forEach(game=>{void readMiSTerThumbnail(url,game.remoteMediaId!,game.category).catch(()=>{});});}
 export function Label({children}:{children:React.ReactNode}) {return <Text style={s.label}>{children}</Text>;}
 export default function App() {
