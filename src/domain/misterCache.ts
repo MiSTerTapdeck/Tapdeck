@@ -15,7 +15,7 @@ function validGames(value:unknown):Game[]{
 }
 async function getDatabase(){
  if(database)return database;
- if(!databasePromise)databasePromise=(async()=>{const opened=await SQLite.openDatabaseAsync('tapdeck-library.db');await opened.execAsync('CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS artwork (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);');database=opened;return opened;})();
+ if(!databasePromise)databasePromise=(async()=>{const opened=await SQLite.openDatabaseAsync('tapdeck-library.db');await opened.execAsync('CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS artwork (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL); CREATE INDEX IF NOT EXISTS idx_cache_key ON cache(key); CREATE INDEX IF NOT EXISTS idx_artwork_key ON artwork(key);');database=opened;return opened;})();
  return databasePromise;
 }
 export async function loadCachedMiSTerLibrary():Promise<Game[]>{
