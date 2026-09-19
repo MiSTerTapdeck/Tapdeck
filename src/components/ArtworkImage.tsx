@@ -17,11 +17,16 @@ export function ArtworkImage({game,style,misterUrl,allowDownload=true,resizeMode
   void (async()=>{
    const url=misterUrl?normaliseMiSTerUrl(misterUrl):undefined;
    if(url&&game.remoteMediaId!==undefined&&publish(await readCachedMiSTerThumbnail(url,game.remoteMediaId,game.category).catch(()=>undefined)))return;
-   if(preferSnap&&publish(await readCachedLibretroSnap(game).catch(()=>undefined)))return;
-   if(publish(await readCachedLibretroThumbnail(game).catch(()=>undefined)))return;
-   if(!preferSnap&&publish(await readCachedLibretroSnap(game).catch(()=>undefined)))return;
-   if(!allowDownload)return;
-   if(preferSnap&&publish(await readLibretroSnap(game).catch(()=>undefined)))return;
+   if(preferSnap){
+    if(publish(await readCachedLibretroSnap(game).catch(()=>undefined)))return;
+    if(allowDownload&&publish(await readLibretroSnap(game).catch(()=>undefined)))return;
+    if(publish(await readCachedLibretroThumbnail(game).catch(()=>undefined)))return;
+    if(!allowDownload)return;
+   }else{
+    if(publish(await readCachedLibretroThumbnail(game).catch(()=>undefined)))return;
+    if(publish(await readCachedLibretroSnap(game).catch(()=>undefined)))return;
+    if(!allowDownload)return;
+   }
    if(publish(await readLibretroThumbnail(game).catch(()=>undefined)))return;
    publish(await readLibretroSnap(game).catch(()=>undefined));
   })();
