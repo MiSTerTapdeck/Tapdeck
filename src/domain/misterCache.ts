@@ -6,6 +6,7 @@ import type {Game} from '../data/library';
 const LEGACY_KEY='tapdeck.mister-library.v1';
 const CACHE_KEY='mister-library';
 let database:SQLite.SQLiteDatabase|undefined;
+let databasePromise:Promise<SQLite.SQLiteDatabase>|undefined;
 
 function parseGames(raw:string):Game[]{try{return validGames(JSON.parse(raw));}catch{return [];}}
 function validGames(value:unknown):Game[]{
@@ -13,8 +14,9 @@ function validGames(value:unknown):Game[]{
  return value.filter((game):game is Game=>!!game&&typeof game==='object'&&typeof game.id==='string'&&typeof game.title==='string'&&typeof game.system==='string'&&['Consoles','Computers','Arcade'].includes(game.category)&&typeof game.remotePath==='string');
 }
 async function getDatabase(){
- if(!database){database=await SQLite.openDatabaseAsync('tapdeck-library.db');await database.execAsync('CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS artwork (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);');}
- return database;
+ if(database)return database;
+ if(!databasePromise)databasePromise=(async()=>{const opened=await SQLite.openDatabaseAsync('tapdeck-library.db');await opened.execAsync('CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS artwork (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);');database=opened;return opened;})();
+ return databasePromise;
 }
 export async function loadCachedMiSTerLibrary():Promise<Game[]>{
  if(Platform.OS==='web')return parseGames(await AsyncStorage.getItem(LEGACY_KEY)??'[]');

@@ -30,7 +30,7 @@ function rpc<T>(base:string,method:string,params?:unknown,timeoutMs=9000):Promis
  });
 }
 export async function checkMiSTer(url:string){
- const version=await rpc<{version?:string;platform?:string}>(url,'version');
+ const version=await rpc<{version?:string;platform?:string}>(url,'version',undefined,4000);
  if(!version?.version)throw new Error('Zaparoo did not identify itself.');
  return version;
 }
