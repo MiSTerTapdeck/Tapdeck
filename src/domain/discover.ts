@@ -8,7 +8,7 @@ export function discoverPlatform(game:Game):DiscoverPlatform{
  const name=game.system.toLowerCase();
  if(/game boy|gameboy|game gear|lynx|wonderswan|neo geo pocket|pokemon mini|supervision|game ?mate|virtual boy/.test(name))return 'Handheld';
  if(/atari 2600|atari 5200|atari 7800|nes|master system|coleco|odyssey|intellivision|game & watch|channel f|vectrex|pc engine|tgfx|msx/.test(name))return '8 bit';
- if(/snes|mega drive|genesis|super cd|mega cd|pc engine cd|neogeo|neo geo|32x|turbografx/.test(name))return '16 bit';
+ if(/snes|super nintendo|super famicom|mega drive|genesis|super cd|mega cd|pc engine cd|neogeo|neo geo|32x|turbografx/.test(name))return '16 bit';
  return '32/64 bit';
 }
 
