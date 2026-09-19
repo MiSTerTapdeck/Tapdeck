@@ -14,7 +14,7 @@ export function ArtworkImage({game,style,misterUrl,allowDownload=true,resizeMode
  useEffect(()=>{
   let active=true;
   setSource(game.image);
-  if(game.image)return()=>{active=false;};
+  if(game.image&&game.remoteMediaId===undefined)return()=>{active=false;};
   const publish=(value:ImageSourcePropType|undefined)=>{if(active&&value){setSource(value);onResolved?.(value);return true;}return false;};
   void (async()=>{
    const url=misterUrl?normaliseMiSTerUrl(misterUrl):undefined;
@@ -32,4 +32,4 @@ export function ArtworkImage({game,style,misterUrl,allowDownload=true,resizeMode
  return <Image source={source} resizeMode={resizeMode} style={style} accessibilityLabel={`${game.title} artwork`}/>;
 }
 
-const styles=StyleSheet.create({missing:{alignItems:'center',justifyContent:'center',backgroundColor:'#171713'},missingText:{fontFamily:fonts.medium,fontSize:10,letterSpacing:.7,color:c.muted,textAlign:'center',padding:8}});
+const styles=StyleSheet.create({missing:{alignItems:'center',justifyContent:'center',backgroundColor:'#E8DBC0'},missingText:{fontFamily:fonts.medium,fontSize:10,letterSpacing:.7,color:c.muted,textAlign:'center',padding:8}});

@@ -14,7 +14,7 @@ export function GameCard({game,index,saved,onPress,reducedMotion,artworkUrl,fetc
   <Animated.View style={[s.card,{transform:[{scale}],backgroundColor:vintage?c.card:'#F9F5EA'}]}>
   <Paper opacity={vintage?.8:.14}/>
   <View style={s.top}><Text style={s.serial}>{String(index+1).padStart(3,'0')}</Text><Text style={[s.system,{color:game.system==='Mega Drive'?'#375970':game.system==='Arcade'?'#58623F':'#91402B'}]}>{game.system.toUpperCase()}</Text></View>
-  <View style={s.art}><ArtworkImage game={game} misterUrl={artworkUrl} allowDownload={fetchRemote!==false} style={s.image}/></View>
+  <View style={s.art}><ArtworkImage game={game} misterUrl={artworkUrl} allowDownload style={s.image}/></View>
   <View style={s.cardFoot}><Text style={s.cardGenre} numberOfLines={1}>{game.genre==='Not listed'?'COLLECTION':game.genre.toUpperCase()}</Text>{saved?<Icon name="bookmark" filled size={13} color={c.orange}/>:<Text style={s.year}>{game.year??'—'}</Text>}</View>
  </Animated.View>
  <Text style={s.title} numberOfLines={2}>{game.title}</Text>

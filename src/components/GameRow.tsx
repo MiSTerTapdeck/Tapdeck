@@ -6,7 +6,7 @@ import {Icon} from './Icon';
 import {ArtworkImage} from './ArtworkImage';
 export function GameRow({game,saved,onPress,annotation,trailing,artworkUrl,fetchRemote}:{game:Game;saved:boolean;onPress:()=>void;annotation?:string;trailing?:React.ReactNode;artworkUrl?:string;fetchRemote?:boolean}) {
  return <Pressable testID={`row-${game.id}`} accessibilityRole="button" accessibilityLabel={`Open ${game.title}, ${game.system}, ${game.year??'year unknown'}${saved?', saved':''}`} onPress={onPress} style={({pressed})=>[s.row,pressed&&s.pressed]}>
-  <View style={s.thumb}><ArtworkImage game={game} misterUrl={artworkUrl} allowDownload={fetchRemote!==false} style={s.image}/></View>
+  <View style={s.thumb}><ArtworkImage game={game} misterUrl={artworkUrl} allowDownload style={s.image}/></View>
   <View style={s.copy}><Text style={s.title} numberOfLines={1}>{game.title}</Text><Text style={s.meta}>{game.system} <Text style={s.dot}>·</Text> {game.year??'Year unknown'}</Text><Text style={s.genre} numberOfLines={1}>{annotation??game.genre}</Text></View>
   {trailing??(saved&&<Icon name="bookmark" filled size={16} color={c.orange}/>)}
  </Pressable>;
