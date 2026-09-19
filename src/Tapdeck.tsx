@@ -13,7 +13,7 @@ import {parsePlaylists,reorderIds,type Playlist} from './domain/playlists';
 import {recommendGames} from './domain/discover';
 import {checkMiSTer,normaliseMiSTerUrl,clearMiSTerArtworkMemoryCache,readCachedMiSTerThumbnail,readMiSTerLibrary,readMiSTerMetadata,readMiSTerThumbnail} from './domain/mister';
 import {launchMiSTerRemoteGame} from './domain/misterRemote';
-import {getCachedArtworkBySystem,getCachedArtworkStats,loadCachedMiSTerLibrary,saveCachedMiSTerLibrary} from './domain/misterCache';
+import {getCachedArtworkStats,loadCachedMiSTerLibrary,saveCachedMiSTerLibrary} from './domain/misterCache';
 import {GameCard} from './components/GameCard';
 import {GameRow} from './components/GameRow';
 import {Paper} from './components/Paper';
@@ -70,7 +70,7 @@ function Tapdeck() {
  function showPanel(next:Exclude<typeof panel,null>){Keyboard.dismiss();setPanel(next);}
  useEffect(()=>{
   let active=true;
-  void AsyncStorage.removeItem('tapdeck.artwork-bridge.v1');Promise.all([settleWithin(AsyncStorage.getItem(SAVED_KEY),null),settleWithin(AsyncStorage.getItem(PLAYLISTS_KEY),null),settleWithin(AsyncStorage.getItem(MISTER_URL_KEY),null),settleWithin(AsyncStorage.getItem(PLAY_HISTORY_KEY),null),settleWithin(loadCachedMiSTerLibrary(),[] as Game[]),settleWithin(getCachedArtworkStats(),{count:0,bytes:0} as {count:number;bytes:number})]).then(([savedRaw,playlistsRaw,url,historyRaw,cachedLibrary,artworkStats])=>{if(active){const validIds=games.map(g=>g.id);setSaved(parseSaved(savedRaw,validIds));setPlaylists(parsePlaylists(playlistsRaw,validIds));setPlayHistory(parsePlayHistory(historyRaw,validIds));setLibraryRecords(cachedLibrary);setArtworkCacheStats(artworkStats);setMiSTerUrl(url??'');void getCachedArtworkBySystem(cachedLibrary,url??'').then(setArtworkCacheBySystem).catch(()=>{});setShouldAutoConnect(!!url);}}).catch(()=>{if(active)notify('Your saved binder could not be loaded.');}).finally(()=>{if(active)setReady(true);});
+  void AsyncStorage.removeItem('tapdeck.artwork-bridge.v1');Promise.all([settleWithin(AsyncStorage.getItem(SAVED_KEY),null),settleWithin(AsyncStorage.getItem(PLAYLISTS_KEY),null),settleWithin(AsyncStorage.getItem(MISTER_URL_KEY),null),settleWithin(AsyncStorage.getItem(PLAY_HISTORY_KEY),null),settleWithin(loadCachedMiSTerLibrary(),[] as Game[])]).then(([savedRaw,playlistsRaw,url,historyRaw,cachedLibrary])=>{if(active){const validIds=games.map(g=>g.id);setSaved(parseSaved(savedRaw,validIds));setPlaylists(parsePlaylists(playlistsRaw,validIds));setPlayHistory(parsePlayHistory(historyRaw,validIds));setLibraryRecords(cachedLibrary);setMiSTerUrl(url??'');setShouldAutoConnect(!!url);}}).catch(()=>{if(active)notify('Your saved binder could not be loaded.');}).finally(()=>{if(active)setReady(true);});
   void loadCachedMiSTerLibrary().then(records=>{if(active&&records.length)setLibraryRecords(current=>current.length?current:records);}).catch(()=>{});
   void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);
   const sub=AccessibilityInfo.addEventListener('reduceMotionChanged',setReducedMotion);
@@ -82,7 +82,7 @@ function Tapdeck() {
   if(Platform.OS==='web'){const handler=(e:KeyboardEvent)=>{if(e.key==='Escape')back();};document.addEventListener('keydown',handler);return()=>{subscription.remove();document.removeEventListener('keydown',handler);};}
   return()=>subscription.remove();
  },[selected,panel]);
- useEffect(()=>{if(!ready||!shouldAutoConnect||!misterUrl||connected||connecting)return;setShouldAutoConnect(false);setConnecting(true);const timer=setTimeout(()=>{autoConnectAttempts.current+=1;void reconnectSavedMiSTer().then(success=>{if(!success&&autoConnectAttempts.current<2)setTimeout(()=>setShouldAutoConnect(true),1500);});},120);return()=>clearTimeout(timer);},[ready,shouldAutoConnect,misterUrl,connected,connecting]);
+ useEffect(()=>{if(!ready||!shouldAutoConnect||!misterUrl||connected||connecting)return;setShouldAutoConnect(false);setConnected(true);const timer=setTimeout(()=>{autoConnectAttempts.current+=1;void reconnectSavedMiSTer().then(success=>{if(!success){setConnected(false);if(autoConnectAttempts.current<2)setTimeout(()=>setShouldAutoConnect(true),1500);}});},0);return()=>clearTimeout(timer);},[ready,shouldAutoConnect,misterUrl,connected,connecting]);
  useEffect(()=>{if(ready&&!misterUrl&&!promptedForConnection.current){promptedForConnection.current=true;setPanel('device');}},[ready,misterUrl]);
  async function toggleSaved(game:Game){
   if(!ready||saving.current)return;saving.current=true;tap();
