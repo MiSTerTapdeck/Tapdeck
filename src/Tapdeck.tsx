@@ -12,7 +12,7 @@ import {primaryGenre} from './domain/genre';
 import {parsePlaylists,reorderIds,type Playlist} from './domain/playlists';
 import {discoverPlatform,recommendGames,type DiscoverPlatform} from './domain/discover';
 import {batchDownloadLibretro} from './domain/libretro';
-import {checkMiSTer,normaliseMiSTerUrl,clearMiSTerArtworkMemoryCache,readCachedMiSTerThumbnail,readMiSTerLibrary,readMiSTerMetadata,readMiSTerThumbnail} from './domain/mister';
+import {checkMiSTer,displayGenre,normaliseMiSTerUrl,clearMiSTerArtworkMemoryCache,readCachedMiSTerThumbnail,readMiSTerLibrary,readMiSTerMetadata,readMiSTerThumbnail} from './domain/mister';
 import {launchMiSTerRemoteGame} from './domain/misterRemote';
 import {getCachedArtworkBySystem,getCachedArtworkStats,loadCachedMiSTerLibrary,saveCachedMiSTerLibrary} from './domain/misterCache';
 import {GameCard} from './components/GameCard';
@@ -73,8 +73,8 @@ function Tapdeck() {
  function showPanel(next:Exclude<typeof panel,null>){Keyboard.dismiss();setPanel(next);}
  useEffect(()=>{
   let active=true;
-  void AsyncStorage.removeItem('tapdeck.artwork-bridge.v1');Promise.all([settleWithin(AsyncStorage.getItem(SAVED_KEY),null),settleWithin(AsyncStorage.getItem(PLAYLISTS_KEY),null),settleWithin(AsyncStorage.getItem(MISTER_URL_KEY),null),settleWithin(AsyncStorage.getItem(PLAY_HISTORY_KEY),null),settleWithin(loadCachedMiSTerLibrary(),[] as Game[])]).then(([savedRaw,playlistsRaw,url,historyRaw,cachedLibrary])=>{if(active){const validIds=games.map(g=>g.id);setSaved(parseSaved(savedRaw,validIds));setPlaylists(parsePlaylists(playlistsRaw,validIds));setPlayHistory(parsePlayHistory(historyRaw,validIds));setLibraryRecords(cachedLibrary);setMiSTerUrl(url??'');void getCachedArtworkBySystem(cachedLibrary,url??'').then(setArtworkCacheBySystem).catch(()=>{});setShouldAutoConnect(!!url);}}).catch(()=>{if(active)notify('Your saved binder could not be loaded.');}).finally(()=>{if(active)setReady(true);});
-  void loadCachedMiSTerLibrary().then(records=>{if(active&&records.length)setLibraryRecords(current=>current.length?current:records);}).catch(()=>{});
+  void AsyncStorage.removeItem('tapdeck.artwork-bridge.v1');Promise.all([settleWithin(AsyncStorage.getItem(SAVED_KEY),null),settleWithin(AsyncStorage.getItem(PLAYLISTS_KEY),null),AsyncStorage.getItem(MISTER_URL_KEY),settleWithin(AsyncStorage.getItem(PLAY_HISTORY_KEY),null),settleWithin(loadCachedMiSTerLibrary(),[] as Game[])]).then(([savedRaw,playlistsRaw,url,historyRaw,cachedLibrary])=>{if(active){const validIds=games.map(g=>g.id);const normalized=cachedLibrary.map(game=>({...game,genre:displayGenre(game.genre)}));setSaved(parseSaved(savedRaw,validIds));setPlaylists(parsePlaylists(playlistsRaw,validIds));setPlayHistory(parsePlayHistory(historyRaw,validIds));setLibraryRecords(normalized);setMiSTerUrl(url??'');void getCachedArtworkBySystem(normalized,url??'').then(setArtworkCacheBySystem).catch(()=>{});setShouldAutoConnect(!!url);}}).catch(()=>{if(active)notify('Your saved binder could not be loaded.');}).finally(()=>{if(active)setReady(true);});
+  void loadCachedMiSTerLibrary().then(records=>{if(active&&records.length)setLibraryRecords(current=>current.length?current:records.map(game=>({...game,genre:displayGenre(game.genre)})));}).catch(()=>{});
   void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);
   const sub=AccessibilityInfo.addEventListener('reduceMotionChanged',setReducedMotion);
   return()=>{active=false;sub.remove();if(noticeTimer.current)clearTimeout(noticeTimer.current);};

@@ -12,11 +12,11 @@ export function ArtworkImage({game,style,misterUrl,allowDownload=true,resizeMode
  useEffect(()=>{
   let active=true;
   setSource(preferSnap?fallbackThumbnail(game.genre):(game.image??fallbackThumbnail(game.genre)));
-  if(game.image&&game.remoteMediaId===undefined)return()=>{active=false;};
+  if(game.image&&game.remoteMediaId===undefined&&!preferSnap)return()=>{active=false;};
   const publish=(value:ImageSourcePropType|undefined)=>{if(active&&value){setSource(value);onResolved?.(value);return true;}return false;};
   void (async()=>{
    const url=misterUrl?normaliseMiSTerUrl(misterUrl):undefined;
-   if(url&&game.remoteMediaId!==undefined&&publish(await readCachedMiSTerThumbnail(url,game.remoteMediaId,game.category).catch(()=>undefined)))return;
+   if(!preferSnap&&url&&game.remoteMediaId!==undefined&&publish(await readCachedMiSTerThumbnail(url,game.remoteMediaId,game.category).catch(()=>undefined)))return;
    if(preferSnap){
     if(publish(await readCachedLibretroSnap(game).catch(()=>undefined)))return;
     if(allowDownload&&publish(await readLibretroSnap(game).catch(()=>undefined)))return;
