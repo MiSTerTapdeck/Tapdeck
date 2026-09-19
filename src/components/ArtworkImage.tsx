@@ -1,15 +1,13 @@
 import React,{useEffect,useState} from 'react';
 import {Image,StyleSheet,Text,View,type ImageSourcePropType,type ImageStyle,type StyleProp} from 'react-native';
 import {fallbackThumbnail,type Game} from '../data/library';
-import {readCachedLibretroSnap,readCachedLibretroThumbnail,readLibretroSnap,readLibretroThumbnail,subscribeToArtwork} from '../domain/libretro';
+import {readCachedLibretroSnap,readCachedLibretroThumbnail,readLibretroSnap,readLibretroThumbnail} from '../domain/libretro';
 import {fonts,palette as c} from '../theme';
 
 type Props={game:Game;style?:StyleProp<ImageStyle>;misterUrl?:string;allowDownload?:boolean;resizeMode?:'cover'|'contain';onResolved?:(source:ImageSourcePropType)=>void};
 
 export function ArtworkImage({game,style,misterUrl,allowDownload=true,resizeMode='cover',onResolved}:Props){
  const [source,setSource]=useState<ImageSourcePropType|undefined>(game.image??fallbackThumbnail(game.genre));
- const [cacheVersion,setCacheVersion]=useState(0);
- useEffect(()=>subscribeToArtwork(()=>setCacheVersion(version=>version+1)),[]);
  useEffect(()=>{
   let active=true;
   setSource(game.image??fallbackThumbnail(game.genre));
@@ -23,7 +21,7 @@ export function ArtworkImage({game,style,misterUrl,allowDownload=true,resizeMode
    publish(await readLibretroSnap(game).catch(()=>undefined));
   })();
   return()=>{active=false;};
- },[allowDownload,cacheVersion,game.category,game.id,game.image,game.remoteFilePath,game.remoteMediaId,game.remotePath,game.system,game.title,misterUrl]);
+ },[allowDownload,game.category,game.id,game.image,game.remoteFilePath,game.remoteMediaId,game.remotePath,game.system,game.title,misterUrl]);
  if(!source)return <View style={[styles.missing,style]}><Text style={styles.missingText}>No artwork available</Text></View>;
  return <Image source={source} resizeMode={resizeMode} style={style} accessibilityLabel={`${game.title} artwork`}/>;
 }
