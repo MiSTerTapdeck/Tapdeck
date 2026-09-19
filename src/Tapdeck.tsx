@@ -11,7 +11,8 @@ import {filterGames,parseSaved,type SortOrder} from './domain/library';
 import {primaryGenre} from './domain/genre';
 import {parsePlaylists,reorderIds,type Playlist} from './domain/playlists';
 import {recommendGames} from './domain/discover';
-import {checkMiSTer,launchMiSTerGame,normaliseMiSTerUrl,clearMiSTerArtworkMemoryCache,readCachedMiSTerThumbnail,readMiSTerLibrary,readMiSTerMetadata,readMiSTerThumbnail} from './domain/mister';
+import {checkMiSTer,normaliseMiSTerUrl,clearMiSTerArtworkMemoryCache,readCachedMiSTerThumbnail,readMiSTerLibrary,readMiSTerMetadata,readMiSTerThumbnail} from './domain/mister';
+import {launchMiSTerRemoteGame} from './domain/misterRemote';
 import {getCachedArtworkBySystem,getCachedArtworkStats,loadCachedMiSTerLibrary,saveCachedMiSTerLibrary} from './domain/misterCache';
 import {GameCard} from './components/GameCard';
 import {GameRow} from './components/GameRow';
@@ -98,9 +99,9 @@ function Tapdeck() {
  }
  async function cacheAllArtwork(){if(!connected||cachingArtwork)return;const url=normaliseMiSTerUrl(misterUrl);const candidates=libraryGames.filter(game=>game.remoteMediaId!==undefined&&game.remoteHasArtwork!==false);setCachingArtwork(true);setArtworkProgress({done:0,total:candidates.length});let next=0;let done=0;const worker=async()=>{while(next<candidates.length){const game=candidates[next++];await readMiSTerThumbnail(url,game.remoteMediaId!,game.category).catch(()=>{});done+=1;if(done%10===0||done===candidates.length){setArtworkProgress({done,total:candidates.length});if(done%250===0)clearMiSTerArtworkMemoryCache();}}};try{await Promise.all([worker(),worker()]);clearMiSTerArtworkMemoryCache();const stats=await getCachedArtworkStats();setArtworkCacheStats(stats);notify(`${stats.count.toLocaleString()} artwork thumbnails cached.`);}finally{setCachingArtwork(false);}}
  async function launch(game:Game){
-  if(!game.remotePath){showPanel('device');notify('This game does not have a MiSTer launch command.');return false;}
+  if(!game.remoteFilePath){notify('This game has no launch path in the MiSTer library.');return false;}
   if(!connected){const reconnected=await reconnectSavedMiSTer();if(!reconnected){showPanel('device');notify('Tapdeck could not reconnect to your MiSTer.');return false;}}
-  try{await launchMiSTerGame(normaliseMiSTerUrl(misterUrl),game.remotePath);notify(`Launching ${game.title} on MiSTer…`);return true;}catch(error){notify(error instanceof Error?error.message:'MiSTer could not launch that game.');return false;}
+  try{await launchMiSTerRemoteGame(misterUrl,game);notify(`Launching ${game.title} on MiSTer…`);return true;}catch(error){notify(error instanceof Error?error.message:'MiSTer Remote could not launch that game.');return false;}
  }
  function createPlaylist(){
   const title=playlistName.trim();if(!title)return;
