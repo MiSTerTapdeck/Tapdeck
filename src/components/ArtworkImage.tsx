@@ -1,7 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import {Image,StyleSheet,Text,View,type ImageSourcePropType,type ImageStyle,type StyleProp} from 'react-native';
 import {fallbackThumbnail,type Game} from '../data/library';
-import {readCachedLibretroSnap,readCachedLibretroThumbnail,readLibretroSnap,readLibretroThumbnail} from '../domain/libretro';
+import {readCachedLibretroSnap,readCachedLibretroThumbnail,readLibretroSnap,readLibretroThumbnail,subscribeToArtwork} from '../domain/libretro';
 import {normaliseMiSTerUrl,readCachedMiSTerThumbnail} from '../domain/mister';
 import {fonts,palette as c} from '../theme';
 
@@ -9,6 +9,8 @@ type Props={game:Game;style?:StyleProp<ImageStyle>;misterUrl?:string;allowDownlo
 
 function ArtworkImageImpl({game,style,misterUrl,allowDownload=true,resizeMode='cover',preferSnap=false,onResolved}:Props){
  const [source,setSource]=useState<ImageSourcePropType|undefined>(preferSnap?fallbackThumbnail(game.genre):(game.image??fallbackThumbnail(game.genre)));
+ const [artworkVersion,setArtworkVersion]=useState(0);
+ useEffect(()=>subscribeToArtwork(()=>setArtworkVersion(version=>version+1)),[]);
  useEffect(()=>{
   let active=true;
   setSource(preferSnap?fallbackThumbnail(game.genre):(game.image??fallbackThumbnail(game.genre)));
@@ -31,7 +33,7 @@ function ArtworkImageImpl({game,style,misterUrl,allowDownload=true,resizeMode='c
    publish(await readLibretroSnap(game).catch(()=>undefined));
   })();
   return()=>{active=false;};
- },[allowDownload,game.category,game.id,game.image,game.remoteFilePath,game.remoteMediaId,game.remotePath,game.system,game.title,misterUrl,preferSnap]);
+ },[allowDownload,artworkVersion,game.category,game.id,game.image,game.remoteFilePath,game.remoteMediaId,game.remotePath,game.system,game.title,misterUrl,preferSnap]);
  if(!source)return <View style={[styles.missing,style]}><Text style={styles.missingText}>No artwork available</Text></View>;
  return <Image source={source} resizeMode={resizeMode} style={style} accessibilityLabel={`${game.title} artwork`}/>;
 }
