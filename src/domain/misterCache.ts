@@ -11,7 +11,7 @@ let databasePromise:Promise<SQLite.SQLiteDatabase>|undefined;
 // Serialize cache access so artwork loads cannot race library saves/stats reads.
 let databaseQueue=Promise.resolve();
 async function withDatabase<T>(operation:(db:SQLite.SQLiteDatabase)=>Promise<T>):Promise<T>{
- const run=databaseQueue.then(async()=>operation(await getDatabase()));
+ const run=databaseQueue.then(async()=>{let last:unknown;for(let attempt=0;attempt<4;attempt+=1){try{return await operation(await getDatabase());}catch(error){last=error;if(!String(error).toLowerCase().includes('database is locked')||attempt===3)throw error;await new Promise(resolve=>setTimeout(resolve,75*(attempt+1)));}}throw last;});
  databaseQueue=run.then(()=>undefined,()=>undefined);
  return run;
 }
