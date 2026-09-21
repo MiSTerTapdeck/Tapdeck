@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {parseArtworkDirectory,matchLibretroFilename,libretroSystemsFor,artworkCacheFilename,libretroArtworkUrl} from '../src/domain/libretroNaming.ts';
+import {parseArtworkDirectory,matchLibretroFilename,libretroSystemsFor,libretroArtworkIdentity,artworkCacheFilename,libretroArtworkUrl} from '../src/domain/libretroNaming.ts';
 test('Eco Fighters resolves from a directory containing malformed percent escapes',()=>{
  const names=parseArtworkDirectory(`<a href="100% game.png">x</a><a href="Eco%20Fighters%20(USA%20940215).png">x</a>`);
  const game={title:'Eco Fighters',system:'Capcom Play II',category:'Arcade',id:'eco'} as any;
@@ -15,6 +15,10 @@ test('ZX Spectrum resolves to the Sinclair ZX Spectrum artwork folder',()=>{
 });
 test('Neo Geo MVS prioritizes the dedicated Neo Geo artwork set',()=>{
  assert.deepEqual(libretroSystemsFor({title:'Samurai Shodown',system:'Neo Geo MVS',remoteSystemId:'neogeo-mvs',category:'Arcade',id:'samsho'} as any)?.directories,['SNK - Neo Geo','MAME','FBNeo - Arcade Games']);
+});
+test('Neo Geo MVS artwork uses a new cache identity after the source correction',()=>{
+ const game={title:'Samurai Shodown',system:'Neo Geo MVS',remoteSystemId:'neogeo-mvs',remoteFilePath:'/media/fat/games/Neo Geo MVS/samsho.zip',category:'Arcade',id:'samsho'} as any;
+ assert.match(libretroArtworkIdentity(game),/neo-geo-source-v2/);
 });
 test('punctuation in A.B. Cop is not treated as a file extension',()=>{
  assert.equal(matchLibretroFilename({title:'A.B. Cop',id:'ab'} as any,['A.B. Cop (FD1094 317-0169b).png']),'A.B. Cop (FD1094 317-0169b).png');
