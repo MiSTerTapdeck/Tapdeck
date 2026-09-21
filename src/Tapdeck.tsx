@@ -5,7 +5,7 @@ import {StatusBar} from 'expo-status-bar';
 import {useFonts} from 'expo-font';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {palette as c} from './theme';
+import {fonts,palette as c} from './theme';
 import {categories,fallbackArtwork,fallbackThumbnail,games,type Category,type Game} from './data/library';
 import {filterGames,parseSaved,type SortOrder} from './domain/library';
 import {primaryGenre} from './domain/genre';
