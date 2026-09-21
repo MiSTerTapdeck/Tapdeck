@@ -12,8 +12,15 @@ export function filenameWithoutExtension(v:string){return (v.replace(/\\/g,'/').
 export function artworkCandidates(game:Game){const title=game.title.trim();const plain=title.replace(/\s*[\[(][^\])]*[\])]/g,'').trim();const acronym=plain.replace(/([A-Za-z])\./g,'$1');return [...new Set([filenameWithoutExtension(game.remoteFilePath??''),title,plain,acronym])].filter(Boolean);}
 const withoutTags=(value:string)=>filenameWithoutExtension(value).replace(/\s*[\[(][^\])]*[\])]/g,'').trim();
 const normalizedTitle=(value:string)=>withoutTags(value).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'');
+const titleVariants=(value:string)=>{const clean=withoutTags(value).trim();const variants=[clean];const trailing=clean.match(/^(.*),\s*(the|a|an)$/i);if(trailing)variants.push(`${trailing[2]} ${trailing[1]}`);return variants;};
 const titleWords=(value:string)=>withoutTags(value).toLowerCase().normalize('NFKD').match(/[a-z0-9]+/g)?.filter(word=>word.length>1||/^\d+$/.test(word))??[];
-export function matchLibretroFilename(game:Game,names:string[]){for(const candidate of artworkCandidates(game)){const candidateNorm=normalizedTitle(candidate);const exact=names.find(name=>normalizedTitle(name)===candidateNorm);if(exact)return exact;}let best:{name:string;score:number}|undefined;for(const candidate of artworkCandidates(game)){const candidateWords=titleWords(candidate);if(candidateWords.length<2)continue;for(const name of names){const nameWords=titleWords(name);const shared=new Set(candidateWords.filter(word=>nameWords.includes(word))).size;const score=shared/Math.max(candidateWords.length,nameWords.length);if(shared>=2&&score>=.7&&(!best||score>best.score))best={name,score};}}return best?.name;}
+export function matchLibretroFilename(game:Game,names:string[]){
+ for(const candidate of artworkCandidates(game))for(const variant of titleVariants(candidate)){const candidateNorm=normalizedTitle(variant);const exact=names.find(name=>normalizedTitle(name)===candidateNorm);if(exact)return exact;}
+ // Some regional databases prepend a native title, e.g. "Ryuuko no Ken ~
+ // Art of Fighting". Accept a substantial title contained in the filename,
+ // while avoiding short generic matches.
+ for(const candidate of artworkCandidates(game))for(const variant of titleVariants(candidate)){const candidateNorm=normalizedTitle(variant);if(candidateNorm.length<6)continue;const embedded=names.find(name=>{const nameNorm=normalizedTitle(name);return nameNorm.includes(candidateNorm)||candidateNorm.includes(nameNorm);});if(embedded)return embedded;}
+ let best:{name:string;score:number}|undefined;for(const candidate of artworkCandidates(game)){const candidateWords=titleWords(candidate);if(candidateWords.length<2)continue;for(const name of names){const nameWords=titleWords(name);const shared=new Set(candidateWords.filter(word=>nameWords.includes(word))).size;const score=shared/Math.max(candidateWords.length,nameWords.length);if(shared>=2&&score>=.7&&(!best||score>best.score))best={name,score};}}return best?.name;}
 export function libretroArtworkUrl(directory:string,kind:LibretroArtworkKind,filename:string){return `https://thumbnails.libretro.com/${encodeURIComponent(directory)}/${kind}/${encodeURIComponent(filename)}`;}
 
 export function parseArtworkDirectory(html:string):string[]{
