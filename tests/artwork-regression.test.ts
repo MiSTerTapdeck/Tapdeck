@@ -14,9 +14,10 @@ test('punctuation in A.B. Cop is not treated as a file extension',()=>{
  assert.equal(matchLibretroFilename({title:'A.B. Cop',id:'ab'} as any,['A.B. Cop (FD1094 317-0169b).png']),'A.B. Cop (FD1094 317-0169b).png');
 });
 test('Neo Geo CD aliases embedded native titles and trailing articles',()=>{
- const names=['Ryuuko no Ken ~ Art of Fighting (Japan, USA) (En,Ja,Es).png',"King of Fighters '94, The (Japan) (En,Ja).png"];
+ const names=['Ryuuko no Ken ~ Art of Fighting (Japan, USA) (En,Ja,Es).png',"King of Fighters '94, The (Japan) (En,Ja).png",'Art of Fighting - Ryuuko no Ken Gaiden ~ The Path of the Warrior - Art of Fighting 3 (Japan) (En,Ja,Es,Pt.png'];
  assert.equal(matchLibretroFilename({title:'Art of Fighting',id:'aof'} as any,names),names[0]);
  assert.equal(matchLibretroFilename({title:"King of Fighters '94, the",id:'kof94'} as any,names),names[1]);
+ assert.equal(matchLibretroFilename({title:'Art of Fighting 3',id:'aof3'} as any,names),names[2]);
 });
 test('long ROM paths produce bounded, distinct cache filenames',()=>{
  const id='directory/'.repeat(60);

@@ -12,7 +12,7 @@ export function filenameWithoutExtension(v:string){return (v.replace(/\\/g,'/').
 export function artworkCandidates(game:Game){const title=game.title.trim();const plain=title.replace(/\s*[\[(][^\])]*[\])]/g,'').trim();const acronym=plain.replace(/([A-Za-z])\./g,'$1');return [...new Set([filenameWithoutExtension(game.remoteFilePath??''),title,plain,acronym])].filter(Boolean);}
 const withoutTags=(value:string)=>filenameWithoutExtension(value).replace(/\s*[\[(][^\])]*[\])]/g,'').trim();
 const normalizedTitle=(value:string)=>withoutTags(value).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'');
-const titleVariants=(value:string)=>{const clean=withoutTags(value).trim();const variants=[clean];const trailing=clean.match(/^(.*),\s*(the|a|an)$/i);if(trailing)variants.push(`${trailing[2]} ${trailing[1]}`);return variants;};
+const titleVariants=(value:string)=>{const clean=withoutTags(value).trim();const variants=[clean];const trailing=clean.match(/^(.*),\s*(the|a|an)$/i);if(trailing)variants.push(`${trailing[2]} ${trailing[1]}`);const leading=clean.match(/^(the|a|an)\s+(.+)$/i);if(leading)variants.push(`${leading[2]}, ${leading[1]}`);return variants;};
 const titleWords=(value:string)=>withoutTags(value).toLowerCase().normalize('NFKD').match(/[a-z0-9]+/g)?.filter(word=>word.length>1||/^\d+$/.test(word))??[];
 export function matchLibretroFilename(game:Game,names:string[]){
  for(const candidate of artworkCandidates(game))for(const variant of titleVariants(candidate)){const candidateNorm=normalizedTitle(variant);const exact=names.find(name=>normalizedTitle(name)===candidateNorm);if(exact)return exact;}
