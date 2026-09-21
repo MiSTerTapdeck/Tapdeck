@@ -27,19 +27,11 @@ async function getDatabase(){
  return databasePromise;
 }
 export async function loadCachedMiSTerLibrary():Promise<Game[]>{
- if(Platform.OS==='web')return parseGames(await AsyncStorage.getItem(LEGACY_KEY)??'[]');
- const record=await withDatabase(db=>db.getFirstAsync<{value:string}>('SELECT value FROM cache WHERE key = ?',[CACHE_KEY]));
- if(record?.value)return parseGames(record.value);
- const legacy=await AsyncStorage.getItem(LEGACY_KEY);
- if(!legacy)return [];
- const games=parseGames(legacy);
- if(games.length)await saveCachedMiSTerLibrary(games);
- return games;
+ return parseGames(await AsyncStorage.getItem(LEGACY_KEY)??'[]');
 }
 export async function saveCachedMiSTerLibrary(games:Game[]):Promise<void>{
  const value=JSON.stringify(games.map(({image,scene,...game})=>game));
- if(Platform.OS==='web'){await AsyncStorage.setItem(LEGACY_KEY,value);return;}
- await withDatabase(db=>db.runAsync('INSERT OR REPLACE INTO cache (key, value) VALUES (?, ?)',[CACHE_KEY,value]));
+ await AsyncStorage.setItem(LEGACY_KEY,value);
 }
 
 export async function loadCachedArtwork(key:string):Promise<string|undefined>{if(Platform.OS==='web')return undefined;return (await withDatabase(db=>db.getFirstAsync<{value:string}>('SELECT value FROM artwork WHERE key = ?',[key])))?.value;}
