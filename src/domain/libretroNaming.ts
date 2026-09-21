@@ -33,6 +33,16 @@ export function parseArtworkDirectory(html:string):string[]{
  }
  return names;
 }
+export async function parseArtworkDirectoryInChunks(html:string):Promise<string[]>{
+ const names:string[]=[];const matcher=/href=(["'])(.*?)\1/gi;let match:RegExpExecArray|null;let processed=0;
+ while((match=matcher.exec(html))){
+  let name=match[2].replace(/&amp;/g,'&');
+  try{name=decodeURIComponent(name);}catch{}
+  if(/\.(png|jpe?g|webp)$/i.test(name)&&!name.includes('/'))names.push(name);
+  if(++processed%250===0)await new Promise<void>(resolve=>setTimeout(resolve,0));
+ }
+ return names;
+}
 export function artworkCacheFilename(id:string){
  let a=2166136261,b=5381;
  for(let i=0;i<id.length;i++){a=Math.imul(a^id.charCodeAt(i),16777619);b=Math.imul(b,33)^id.charCodeAt(i);}

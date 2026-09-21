@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {parseArtworkDirectory,matchLibretroFilename,libretroSystemsFor,libretroArtworkIdentity,artworkCacheFilename,libretroArtworkUrl} from '../src/domain/libretroNaming.ts';
+import {parseArtworkDirectory,parseArtworkDirectoryInChunks,matchLibretroFilename,libretroSystemsFor,libretroArtworkIdentity,artworkCacheFilename,libretroArtworkUrl} from '../src/domain/libretroNaming.ts';
 import {c64RunCommands,c64TapeLoadCommands,isC64TapeImage,isSpectrumTapeImage,launchRoutesFor,spectrumTapeLoadCommands} from '../src/domain/misterRemote.ts';
 test('Eco Fighters resolves from a directory containing malformed percent escapes',()=>{
  const names=parseArtworkDirectory(`<a href="100% game.png">x</a><a href="Eco%20Fighters%20(USA%20940215).png">x</a>`);
@@ -55,6 +55,11 @@ test("Atari 2600 Porky's matches and encodes punctuation safely",()=>{
 test('Libretro directory parsing preserves apostrophes inside quoted links',()=>{
  const html='<a href="Porky\'s%20(USA).png">Porky\'s (USA).png</a><a href="Top%20Player\'s%20Golf%20(NGM-003)(NGH-003).png">Top Player\'s Golf</a>';
  assert.deepEqual(parseArtworkDirectory(html),["Porky's (USA).png","Top Player's Golf (NGM-003)(NGH-003).png"]);
+});
+
+test('chunked Libretro directory parsing preserves filenames',async()=>{
+ const html='<a href="Porky\'s%20(USA).png">Porky\'s</a><a href="Top%20Player\'s%20Golf.png">Top Player\'s</a>';
+ assert.deepEqual(await parseArtworkDirectoryInChunks(html),parseArtworkDirectory(html));
 });
 test('long ROM paths produce bounded, distinct cache filenames',()=>{
  const id='directory/'.repeat(60);

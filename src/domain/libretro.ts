@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import type {ImageSourcePropType} from 'react-native';
 import type {Game} from '../data/library';
-import {parseArtworkDirectory,artworkCacheFilename,libretroArtworkIdentity,libretroArtworkUrl,libretroSnapArtworkIdentity,libretroSystemsFor,matchLibretroFilename,type LibretroArtworkKind} from './libretroNaming';
+import {parseArtworkDirectoryInChunks,artworkCacheFilename,libretroArtworkIdentity,libretroArtworkUrl,libretroSnapArtworkIdentity,libretroSystemsFor,matchLibretroFilename,type LibretroArtworkKind} from './libretroNaming';
 export {libretroArtworkIdentity,libretroSnapArtworkIdentity,libretroSystemsFor} from './libretroNaming';
 const indexes=new Map<string,string[]>(); const indexPending=new Map<string,Promise<string[]>>(); const ROOT='https://thumbnails.libretro.com';
 const webArtworkCache=new Map<string,string>();
@@ -14,7 +14,7 @@ function queueDownload<T>(job:()=>Promise<T>):Promise<T>{return new Promise<T>((
 const artworkListeners=new Set<(id:string)=>void>();
 export function subscribeToArtwork(listener:(id:string)=>void){artworkListeners.add(listener);return()=>{artworkListeners.delete(listener);};}
 function announceArtwork(id:string){for(const listener of artworkListeners)listener(id);}
-async function index(dir:string,kind:LibretroArtworkKind){const k=`${dir}:${kind}`;if(indexes.has(k))return indexes.get(k)!;const pending=indexPending.get(k);if(pending)return pending;const request=(async()=>{const response=await fetch(`${ROOT}/${encodeURIComponent(dir)}/${kind}/`);if(!response.ok)throw new Error(`Libretro index ${response.status}`);const html=await response.text();const names=parseArtworkDirectory(html);if(!names.length)throw new Error("Empty artwork directory: "+dir+"/"+kind);indexes.set(k,names);return names;})();indexPending.set(k,request);try{return await request;}finally{indexPending.delete(k);}}
+async function index(dir:string,kind:LibretroArtworkKind){const k=`${dir}:${kind}`;if(indexes.has(k))return indexes.get(k)!;const pending=indexPending.get(k);if(pending)return pending;const request=(async()=>{const response=await fetch(`${ROOT}/${encodeURIComponent(dir)}/${kind}/`);if(!response.ok)throw new Error(`Libretro index ${response.status}`);const html=await response.text();const names=await parseArtworkDirectoryInChunks(html);if(!names.length)throw new Error("Empty artwork directory: "+dir+"/"+kind);indexes.set(k,names);return names;})();indexPending.set(k,request);try{return await request;}finally{indexPending.delete(k);}}
 function localUri(id:string){return FileSystem.documentDirectory?`${FileSystem.documentDirectory}tapdeck-libretro/${artworkCacheFilename(id)}`:undefined;}
 async function cachedLocalSource(id:string):Promise<ImageSourcePropType|undefined>{
  const remembered=webArtworkCache.get(id);if(remembered)return {uri:remembered};
