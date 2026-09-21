@@ -53,9 +53,6 @@ function Tapdeck() {
  const libraryGames=useMemo(()=>omitCollectionArtwork(libraryRecords),[libraryRecords]);
  const [misterUrl,setMiSTerUrl]=useState('');const [connected,setConnected]=useState(false);const [connecting,setConnecting]=useState(false);const [readingGames,setReadingGames]=useState(0);const [artworkCacheStats,setArtworkCacheStats]=useState({count:0,bytes:0});
  const [shouldAutoConnect,setShouldAutoConnect]=useState(false);const autoConnectAttempts=useRef(0);const promptedForConnection=useRef(false);const [clearingArtwork,setClearingArtwork]=useState(false);const [pickerCategory,setPickerCategory]=useState<'Arcade'|'Consoles'|'Computers'>('Arcade');
- const libraryFacets=useMemo(()=>buildLibraryFacets(libraryGames),[libraryGames]);
- const systems=libraryFacets.systems[pickerCategory];
- const genres=libraryFacets.genres(category,selectedSystem);
  const [sort,setSort]=useState<SortOrder>('collection');const [savedOnly,setSavedOnly]=useState(false);
  const [saved,setSaved]=useState<string[]>([]);const [playHistory,setPlayHistory]=useState<Record<string,number>>({});const [ready,setReady]=useState(false);const [batchSystems,setBatchSystems]=useState<string[]>([]);const [batchMenu,setBatchMenu]=useState(false);const [batchRunning,setBatchRunning]=useState(false);const [batchProgress,setBatchProgress]=useState({done:0,total:0});const [maintenanceSystems,setMaintenanceSystems]=useState<MiSTerSystem[]>([]);const [maintenanceSelection,setMaintenanceSelection]=useState<string[]>([]);const [maintenanceMenu,setMaintenanceMenu]=useState(false);const [maintenanceRunning,setMaintenanceRunning]=useState(false);const [maintenanceProgress,setMaintenanceProgress]=useState<LibraryMaintenanceProgress|null>(null);
  const [selected,setSelected]=useState<Game|null>(null);const [cardDirection,setCardDirection]=useState<'previous'|'next'|null>(null);const [panel,setPanel]=useState<'sort'|'device'|'system'|'genre'|'new-playlist'|'edit-playlist'|'playlist-add'|'delete-playlist'|null>(null);
@@ -66,6 +63,9 @@ function Tapdeck() {
  const [reducedMotion,setReducedMotion]=useState(false);const saving=useRef(false);
  const frameWidth=desktop?414:Math.min(width,760);const columns=frameWidth>=650?3:2;
  const playableGames=useMemo(()=>libraryGames.filter(isPlayableGame),[libraryGames]);
+ const libraryFacets=useMemo(()=>buildLibraryFacets(playableGames),[playableGames]);
+ const systems=libraryFacets.systems[pickerCategory];
+ const genres=libraryFacets.genres(category,selectedSystem);
  const systemCounts=useMemo(()=>{const counts:Record<string,number>={};for(const game of playableGames)counts[game.system]=(counts[game.system]??0)+1;return counts;},[playableGames]);
  const results=useMemo(()=>filterGames(playableGames,query,category,sort,savedOnly,saved,selectedSystem,selectedGenre),[playableGames,query,category,sort,savedOnly,saved,selectedSystem,selectedGenre]);
  const searchResults=useMemo(()=>searchAllGames&&query.trim()?searchGamesByTitle(playableGames,query,sort):results,[searchAllGames,playableGames,query,sort,results]);
