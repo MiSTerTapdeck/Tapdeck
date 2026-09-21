@@ -10,7 +10,7 @@ type Props={game:Game;style?:StyleProp<ImageStyle>;misterUrl?:string;allowDownlo
 function ArtworkImageImpl({game,style,misterUrl,allowDownload=true,resizeMode='cover',preferSnap=false,onResolved}:Props){
  const [source,setSource]=useState<ImageSourcePropType|undefined>(preferSnap?fallbackThumbnail(game.genre):(game.image??fallbackThumbnail(game.genre)));
  const [artworkVersion,setArtworkVersion]=useState(0);
- useEffect(()=>subscribeToArtwork(id=>{if(id===libretroArtworkIdentity(game)||id===libretroSnapArtworkIdentity(game))setArtworkVersion(version=>version+1);}),[game.id,game.system,game.remoteSystemId,game.remoteFilePath,game.remotePath]);
+ useEffect(()=>subscribeToArtwork(id=>{if(id===libretroArtworkIdentity(game)||id===libretroSnapArtworkIdentity(game))setArtworkVersion(version=>version+1);}),[game.id,game.system,game.remoteSystemId,game.remoteMediaId,game.remoteFilePath,game.remotePath]);
  useEffect(()=>{
   let active=true;
 

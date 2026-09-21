@@ -29,4 +29,15 @@ export const readLibretroThumbnail=(game:Game)=>read(game,'Named_Boxarts',libret
 export const readCachedLibretroSnap=(game:Game)=>validCachedSource(libretroSnapArtworkIdentity(game));
 export const readLibretroSnap=(game:Game)=>read(game,'Named_Snaps',libretroSnapArtworkIdentity(game));
 export async function warmLibretroThumbnails(records:Game[],progress?:(done:number,total:number)=>void){let done=0;for(const game of records){const box=await readCachedLibretroThumbnail(game);const snap=await readCachedLibretroSnap(game);if(!box&&!snap){const downloadedBox=await readLibretroThumbnail(game).catch(()=>undefined);if(!downloadedBox)await readLibretroSnap(game).catch(()=>undefined);}progress?.(++done,records.length);}}
-export async function batchDownloadLibretro(records:Game[],systems:string[],progress?:(done:number,total:number)=>void){const items=records.filter(game=>systems.includes(game.system));let cursor=0;let done=0;const worker=async()=>{while(true){const game=items[cursor++];if(!game)return;await Promise.all([readLibretroThumbnail(game).catch(()=>undefined),readLibretroSnap(game).catch(()=>undefined)]);done+=1;progress?.(done,items.length);}};await Promise.all(Array.from({length:8},worker));return items.length;}
+export type BatchArtworkResult={checked:number;available:number;unmatched:number};
+export async function batchDownloadLibretro(records:Game[],systems:string[],progress?:(done:number,total:number)=>void):Promise<BatchArtworkResult>{
+ const items=records.filter(game=>systems.includes(game.system));
+ let cursor=0;let done=0;let available=0;let unmatched=0;
+ const worker=async()=>{while(true){const game=items[cursor++];if(!game)return;
+   const [box,snap]=await Promise.all([readLibretroThumbnail(game).catch(()=>undefined),readLibretroSnap(game).catch(()=>undefined)]);
+   if(box||snap)available+=1;else unmatched+=1;
+   done+=1;progress?.(done,items.length);
+ }};
+ await Promise.all(Array.from({length:8},worker));
+ return {checked:items.length,available,unmatched};
+}
