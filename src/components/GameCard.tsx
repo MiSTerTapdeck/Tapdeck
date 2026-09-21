@@ -30,7 +30,7 @@ const s=StyleSheet.create({
  artBackdrop:{...StyleSheet.absoluteFill,left:-8,right:-8,top:-8,bottom:-8,opacity:.7,transform:[{scale:1.12}]},artShade:{...StyleSheet.absoluteFill,backgroundColor:'rgba(25,23,17,.18)'},
  image:{width:'100%',height:'100%'},cardFoot:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',height:24,gap:6},
  cardGenre:{fontFamily:fonts.medium,fontSize:8,letterSpacing:1,color:'#67543A',flex:1},year:{fontFamily:fonts.medium,fontSize:10,color:'#67543A'},
- title:{fontFamily:fonts.display,fontSize:18,lineHeight:26,color:c.ink,marginTop:9,paddingBottom:1},subtitle:{fontFamily:fonts.body,fontSize:11,color:c.muted,lineHeight:17,marginTop:2},
+ title:{fontFamily:fonts.display,fontSize:20,lineHeight:28,color:c.ink,marginTop:9,paddingBottom:1},subtitle:{fontFamily:fonts.body,fontSize:13,color:c.muted,lineHeight:19,marginTop:2},
  missing:{flex:1,backgroundColor:'#E8DBC0',alignItems:'center',justifyContent:'center',padding:10,gap:12},
  missingTitle:{fontFamily:fonts.italic,fontSize:22,textAlign:'center',color:'#756143'},missingCaption:{fontFamily:fonts.medium,fontSize:7,letterSpacing:1,textAlign:'center',color:'#7D6E57'},
 });
