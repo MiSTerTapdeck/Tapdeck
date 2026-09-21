@@ -26,8 +26,8 @@ export function libretroArtworkUrl(directory:string,kind:LibretroArtworkKind,fil
 
 export function parseArtworkDirectory(html:string):string[]{
  const names:string[]=[];
- for(const match of html.matchAll(/href=["']([^"']+)["']/gi)){
-  let name=match[1].replace(/&amp;/g,'&');
+ for(const match of html.matchAll(/href=(["'])(.*?)\1/gi)){
+  let name=match[2].replace(/&amp;/g,'&');
   try{name=decodeURIComponent(name);}catch{}
   if(/\.(png|jpe?g|webp)$/i.test(name)&&!name.includes('/'))names.push(name);
  }

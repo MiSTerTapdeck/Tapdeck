@@ -28,6 +28,10 @@ test("Atari 2600 Porky's matches and encodes punctuation safely",()=>{
  assert.equal(matchLibretroFilename(game,["Porky's (USA).png"]),"Porky's (USA).png");
  assert.equal(libretroArtworkUrl('Atari - 2600','Named_Boxarts',"Porky's (USA).png"),'https://thumbnails.libretro.com/Atari%20-%202600/Named_Boxarts/Porky%27s%20%28USA%29.png');
 });
+test('Libretro directory parsing preserves apostrophes inside quoted links',()=>{
+ const html='<a href="Porky\'s%20(USA).png">Porky\'s (USA).png</a><a href="Top%20Player\'s%20Golf%20(NGM-003)(NGH-003).png">Top Player\'s Golf</a>';
+ assert.deepEqual(parseArtworkDirectory(html),["Porky's (USA).png","Top Player's Golf (NGM-003)(NGH-003).png"]);
+});
 test('long ROM paths produce bounded, distinct cache filenames',()=>{
  const id='directory/'.repeat(60);
  assert.ok(artworkCacheFilename(id).length<40);

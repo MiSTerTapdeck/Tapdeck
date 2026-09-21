@@ -33,7 +33,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/library.test.ts",
+    "test": "node --experimental-strip-types --test tests/library.test.ts tests/artwork-regression.test.ts",
     "test:ui": "playwright test",
     "export": "expo export --platform all --no-bytecode",
     "samples": "node scripts/fetch-samples.mjs",
