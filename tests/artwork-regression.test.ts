@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {parseArtworkDirectory,matchLibretroFilename,libretroSystemsFor,artworkCacheFilename} from '../src/domain/libretroNaming.ts';
+import {parseArtworkDirectory,matchLibretroFilename,libretroSystemsFor,artworkCacheFilename,libretroArtworkUrl} from '../src/domain/libretroNaming.ts';
 test('Eco Fighters resolves from a directory containing malformed percent escapes',()=>{
  const names=parseArtworkDirectory(`<a href="100% game.png">x</a><a href="Eco%20Fighters%20(USA%20940215).png">x</a>`);
  const game={title:'Eco Fighters',system:'Capcom Play II',category:'Arcade',id:'eco'} as any;
@@ -22,6 +22,11 @@ test('Neo Geo CD aliases embedded native titles and trailing articles',()=>{
 test('Neo Geo possessive titles match apostrophe variants',()=>{
  assert.equal(matchLibretroFilename({title:"Top Player's Golf",id:'top-golf'} as any,["Top Player's Golf (NGM-003)(NGH-003).png"]),"Top Player's Golf (NGM-003)(NGH-003).png");
  assert.equal(matchLibretroFilename({title:'Top Players Golf',id:'top-golf-2'} as any,["Top Player's Golf (NGM-003)(NGH-003).png"]),"Top Player's Golf (NGM-003)(NGH-003).png");
+});
+test("Atari 2600 Porky's matches and encodes punctuation safely",()=>{
+ const game={title:"Porky's",system:'Atari2600',category:'Consoles',id:'porkys'} as any;
+ assert.equal(matchLibretroFilename(game,["Porky's (USA).png"]),"Porky's (USA).png");
+ assert.equal(libretroArtworkUrl('Atari - 2600','Named_Boxarts',"Porky's (USA).png"),'https://thumbnails.libretro.com/Atari%20-%202600/Named_Boxarts/Porky%27s%20%28USA%29.png');
 });
 test('long ROM paths produce bounded, distinct cache filenames',()=>{
  const id='directory/'.repeat(60);
