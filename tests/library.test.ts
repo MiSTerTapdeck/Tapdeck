@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {filterGames,genresForCategory,isVintage,parseSaved,systemsForCategory} from '../src/domain/library.ts';
+import {filterGames,genresForCategory,isVintage,parseSaved,searchGamesByTitle,systemsForCategory} from '../src/domain/library.ts';
 import {primaryGenre} from '../src/domain/genre.ts';
 import {parsePlaylists,reorderIds} from '../src/domain/playlists.ts';
 import {recommendGames} from '../src/domain/discover.ts';
@@ -46,6 +46,11 @@ test('genre options respect the active family and genre filter intersects other 
  assert.deepEqual(genresForCategory(seed,'Computers'),['Action']);
  assert.deepEqual(filterGames(seed,'','Consoles','collection',false,[],null,'Platform').map(g=>g.id),['a']);
  assert.deepEqual(filterGames(seed,'Nintendo','Consoles','collection',true,['a'],null,'Platform').map(g=>g.id),['a']);
+});
+test('global game search matches titles only and ignores metadata matches',()=>{
+ const games=[...seed,{...seed[1],id:'d',title:'Unrelated game',developer:'Sonic Team'}];
+ assert.deepEqual(searchGamesByTitle(games,'metroid').map(game=>game.id),['a']);
+ assert.deepEqual(searchGamesByTitle(games,'sonic'),[]);
 });
 test('primary genres normalize Zaparoo genre taxonomy and preserve full genre search',()=>{
  assert.equal(primaryGenre('sports-football-soccer'), 'Sports');

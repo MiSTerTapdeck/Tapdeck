@@ -15,6 +15,13 @@ export function filterGames(games:Game[], query:string, category:Category, sort:
   if(sort==='year') result.sort((a,b)=>(b.year??-1)-(a.year??-1)||a.title.localeCompare(b.title));
   return result;
 }
+export function searchGamesByTitle(games:Game[],query:string,sort:SortOrder='collection'):Game[]{
+  const terms=query.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
+  const result=games.filter(game=>{const title=game.title.toLocaleLowerCase();return terms.every(term=>title.includes(term));});
+  if(sort==='title')result.sort((a,b)=>a.title.localeCompare(b.title));
+  if(sort==='year')result.sort((a,b)=>(b.year??-1)-(a.year??-1)||a.title.localeCompare(b.title));
+  return result;
+}
 // Release age controls paper wear. Play history never changes a card's condition.
 export function isVintage(year:number|null,now=new Date().getFullYear()) {return year!==null && now-year>=20;}
 export function parseSaved(raw:string|null,validIds:string[]):string[] {

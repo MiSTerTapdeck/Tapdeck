@@ -7,7 +7,7 @@ import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {fonts,palette as c} from './theme';
 import {categories,fallbackArtwork,fallbackThumbnail,games,type Category,type Game} from './data/library';
-import {filterGames,parseSaved,type SortOrder} from './domain/library';
+import {filterGames,parseSaved,searchGamesByTitle,type SortOrder} from './domain/library';
 import {primaryGenre} from './domain/genre';
 import {parsePlaylists,reorderIds,type Playlist} from './domain/playlists';
 import {discoverPlatform,recommendGames,type DiscoverPlatform} from './domain/discover';
@@ -68,7 +68,7 @@ function Tapdeck() {
  const playableGames=useMemo(()=>libraryGames.filter(isPlayableGame),[libraryGames]);
  const systemCounts=useMemo(()=>{const counts:Record<string,number>={};for(const game of playableGames)counts[game.system]=(counts[game.system]??0)+1;return counts;},[playableGames]);
  const results=useMemo(()=>filterGames(playableGames,query,category,sort,savedOnly,saved,selectedSystem,selectedGenre),[playableGames,query,category,sort,savedOnly,saved,selectedSystem,selectedGenre]);
- const searchResults=useMemo(()=>searchAllGames&&query.trim()?filterGames(playableGames,query,'All',sort,false,[],null,null):results,[searchAllGames,playableGames,query,sort,results]);
+ const searchResults=useMemo(()=>searchAllGames&&query.trim()?searchGamesByTitle(playableGames,query,sort):results,[searchAllGames,playableGames,query,sort,results]);
  const list=useRef<FlatList<Game>>(null);
  function notify(message:string){setNotice(message);if(noticeTimer.current)clearTimeout(noticeTimer.current);noticeTimer.current=setTimeout(()=>setNotice(''),2600);}
  function showPanel(next:Exclude<typeof panel,null>){Keyboard.dismiss();setPanel(next);}
