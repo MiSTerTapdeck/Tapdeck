@@ -1,15 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SQLite from 'expo-sqlite';
 import * as FileSystem from 'expo-file-system/legacy';
 import {Platform} from 'react-native';
 import type {Game} from '../data/library';
 
 const LEGACY_KEY='tapdeck.mister-library.v1';
 const LIBRARY_FILE='tapdeck-library.json';
-export async function clearLegacyArtworkCaches():Promise<void>{
- if(Platform.OS==='web')return;
- for(const path of [FileSystem.documentDirectory?`${FileSystem.documentDirectory}tapdeck-artwork/`:undefined,FileSystem.documentDirectory?`${FileSystem.documentDirectory}tapdeck-libretro/`:undefined])if(path)await FileSystem.deleteAsync(path,{idempotent:true}).catch(()=>{});
- await SQLite.deleteDatabaseAsync('tapdeck-library.db').catch(()=>{});
+const LIBRARY_BACKUP_FILE='tapdeck-library.backup.json';
+async function removeLegacyStorage():Promise<void>{
+ await AsyncStorage.removeItem(LEGACY_KEY).catch(()=>{});
+ if(Platform.OS==='web'||!FileSystem.documentDirectory)return;
+ const root=FileSystem.documentDirectory;
+ for(const path of [`${root}tapdeck-artwork/`,`${root}SQLite/tapdeck-library.db`,`${root}SQLite/tapdeck-library.db-shm`,`${root}SQLite/tapdeck-library.db-wal`])await FileSystem.deleteAsync(path,{idempotent:true}).catch(()=>{});
 }
 
 function parseGames(raw:string):Game[]{try{return validGames(JSON.parse(raw));}catch{return [];}}
@@ -18,11 +19,22 @@ function validGames(value:unknown):Game[]{
  return value.filter((game):game is Game=>!!game&&typeof game==='object'&&typeof game.id==='string'&&typeof game.title==='string'&&typeof game.system==='string'&&['Consoles','Computers','Arcade'].includes(game.category)&&typeof game.remotePath==='string');
 }
 export async function loadCachedMiSTerLibrary():Promise<Game[]>{
- if(Platform.OS!=='web'&&FileSystem.documentDirectory){try{const file=`${FileSystem.documentDirectory}${LIBRARY_FILE}`;if((await FileSystem.getInfoAsync(file)).exists){const records=parseGames(await FileSystem.readAsStringAsync(file));if(records.length)return records;}}catch{}}
+ if(Platform.OS!=='web'&&FileSystem.documentDirectory){
+  for(const name of [LIBRARY_FILE,LIBRARY_BACKUP_FILE]){try{const file=`${FileSystem.documentDirectory}${name}`;if((await FileSystem.getInfoAsync(file)).exists){const records=parseGames(await FileSystem.readAsStringAsync(file));if(records.length){await removeLegacyStorage();return records;}}}catch{}}
+  const legacy=parseGames(await AsyncStorage.getItem(LEGACY_KEY).catch(()=>null)??'[]');
+  if(legacy.length){await saveCachedMiSTerLibrary(legacy);return legacy;}
+  await removeLegacyStorage();
+  return [];
+ }
  return parseGames(await AsyncStorage.getItem(LEGACY_KEY)??'[]');
 }
 export async function saveCachedMiSTerLibrary(games:Game[]):Promise<void>{
  const value=JSON.stringify(games.map(({image,scene,...game})=>game));
+ if(Platform.OS!=='web'&&FileSystem.documentDirectory){
+  await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}${LIBRARY_BACKUP_FILE}`,value);
+  await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}${LIBRARY_FILE}`,value);
+  await removeLegacyStorage();
+  return;
+ }
  await AsyncStorage.setItem(LEGACY_KEY,value);
- if(Platform.OS!=='web'&&FileSystem.documentDirectory)await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}${LIBRARY_FILE}`,value);
 }
