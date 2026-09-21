@@ -1,7 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import {Image,StyleSheet,Text,View,type ImageSourcePropType,type ImageStyle,type StyleProp} from 'react-native';
 import {fallbackThumbnail,type Game} from '../data/library';
-import {readCachedLibretroSnap,readCachedLibretroThumbnail,readLibretroSnap,readLibretroThumbnail,subscribeToArtwork} from '../domain/libretro';
+import {readCachedLibretroSnap,readCachedLibretroThumbnail,readLibretroSnap,readLibretroThumbnail,subscribeToArtwork,libretroArtworkIdentity,libretroSnapArtworkIdentity} from '../domain/libretro';
 import {normaliseMiSTerUrl,readCachedMiSTerThumbnail} from '../domain/mister';
 import {fonts,palette as c} from '../theme';
 
@@ -10,10 +10,10 @@ type Props={game:Game;style?:StyleProp<ImageStyle>;misterUrl?:string;allowDownlo
 function ArtworkImageImpl({game,style,misterUrl,allowDownload=true,resizeMode='cover',preferSnap=false,onResolved}:Props){
  const [source,setSource]=useState<ImageSourcePropType|undefined>(preferSnap?fallbackThumbnail(game.genre):(game.image??fallbackThumbnail(game.genre)));
  const [artworkVersion,setArtworkVersion]=useState(0);
- useEffect(()=>subscribeToArtwork(()=>setArtworkVersion(version=>version+1)),[]);
+ useEffect(()=>subscribeToArtwork(id=>{if(id===libretroArtworkIdentity(game)||id===libretroSnapArtworkIdentity(game))setArtworkVersion(version=>version+1);}),[game.id,game.system,game.remoteSystemId,game.remoteFilePath,game.remotePath]);
  useEffect(()=>{
   let active=true;
-  setSource(preferSnap?fallbackThumbnail(game.genre):(game.image??fallbackThumbnail(game.genre)));
+
   const publish=(value:ImageSourcePropType|undefined)=>{if(active&&value){setSource(value);onResolved?.(value);return true;}return false;};
   void (async()=>{
    const url=misterUrl?normaliseMiSTerUrl(misterUrl):undefined;
@@ -37,6 +37,6 @@ function ArtworkImageImpl({game,style,misterUrl,allowDownload=true,resizeMode='c
  return <Image source={source} resizeMode={resizeMode} style={style} accessibilityLabel={`${game.title} artwork`}/>;
 }
 
-export const ArtworkImage=React.memo(ArtworkImageImpl,(a,b)=>a.game.id===b.game.id&&a.game.image===b.game.image&&a.game.remoteMediaId===b.game.remoteMediaId&&a.misterUrl===b.misterUrl&&a.allowDownload===b.allowDownload&&a.resizeMode===b.resizeMode&&a.preferSnap===b.preferSnap&&a.style===b.style);
+export const ArtworkImage=React.memo(ArtworkImageImpl);
 
 const styles=StyleSheet.create({missing:{alignItems:'center',justifyContent:'center',backgroundColor:'#E8DBC0'},missingText:{fontFamily:fonts.medium,fontSize:10,letterSpacing:.7,color:c.muted,textAlign:'center',padding:8}});
