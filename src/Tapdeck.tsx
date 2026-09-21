@@ -11,7 +11,7 @@ import {filterGames,parseSaved,type SortOrder} from './domain/library';
 import {primaryGenre} from './domain/genre';
 import {parsePlaylists,reorderIds,type Playlist} from './domain/playlists';
 import {discoverPlatform,recommendGames,type DiscoverPlatform} from './domain/discover';
-import {batchDownloadLibretro} from './domain/libretro';
+import {batchDownloadLibretro,readLibretroSnap,readLibretroThumbnail} from './domain/libretro';
 import {checkMiSTer,displayGenre,normaliseMiSTerUrl,clearMiSTerArtworkMemoryCache,readCachedMiSTerThumbnail,readMiSTerLibrary,readMiSTerMetadata,readMiSTerThumbnail} from './domain/mister';
 import {launchMiSTerRemoteGame} from './domain/misterRemote';
 import {getCachedArtworkBySystem,getCachedArtworkStats,loadCachedMiSTerLibrary,saveCachedMiSTerLibrary} from './domain/misterCache';
@@ -209,6 +209,7 @@ function PlaylistPicker({games:pickerGames=games,playlists,active,gameId,query,o
 
 function rowGamesFromSystems(items:ReturnType<typeof recommendGames>){return items.filter((item,index,array)=>array.findIndex(other=>other.game.system===item.game.system)===index).slice(0,4);}
 function DiscoverView({recommendations,loading,seed,hasSignals,artworkUrl,fetchRemote,onCreatePlaylist,onOpenGame,onBrowse}:{recommendations:ReturnType<typeof recommendGames>;loading:boolean;seed:Game|null;hasSignals:boolean;artworkUrl?:string;fetchRemote:boolean;onCreatePlaylist:()=>void;onOpenGame:(game:Game)=>void;onBrowse:()=>void}){
+ useEffect(()=>{if(loading||!recommendations.length)return;const visible=[...new Map(recommendations.slice(0,9).map(item=>[item.game.id,item.game])).values()];const [featured,...tiles]=visible;void Promise.all([featured?readLibretroSnap(featured).catch(()=>undefined):Promise.resolve(undefined),...tiles.map(game=>readLibretroThumbnail(game).catch(()=>undefined))]);},[loading,recommendations]);
  const [platform,setPlatform]=useState<DiscoverPlatform>('All');const [playlistMade,setPlaylistMade]=useState(false);
  const {lead,more,rowGames}=useMemo(()=>{const visible=platform==='All'?recommendations:recommendations.filter(item=>discoverPlatform(item.game)===platform);const diversified=[...visible].sort((a,b)=>b.score-a.score||a.game.title.localeCompare(b.game.title));const [first,...rest]=diversified;const withoutLead=rest.filter(item=>item.game.id!==first?.game.id);const distinct=rowGamesFromSystems(withoutLead);return {lead:first,more:withoutLead,rowGames:[...distinct,...withoutLead.filter(item=>!distinct.some(other=>other.game.id===item.game.id))].slice(0,4)}},[platform,recommendations]);
  const progress=useRef(new Animated.Value(0)).current;
