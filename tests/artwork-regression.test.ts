@@ -13,6 +13,9 @@ test('Virtual Boy resolves to the Nintendo Virtual Boy artwork folder',()=>{
 test('ZX Spectrum resolves to the Sinclair ZX Spectrum artwork folder',()=>{
  assert.deepEqual(libretroSystemsFor({title:'Manic Miner',system:'ZX Spectrum',remoteSystemId:'spectrum',category:'Computers',id:'spectrum'} as any)?.directories,['Sinclair - ZX Spectrum']);
 });
+test('Neo Geo MVS prioritizes the dedicated Neo Geo artwork set',()=>{
+ assert.deepEqual(libretroSystemsFor({title:'Samurai Shodown',system:'Neo Geo MVS',remoteSystemId:'neogeo-mvs',category:'Arcade',id:'samsho'} as any)?.directories,['SNK - Neo Geo','MAME','FBNeo - Arcade Games']);
+});
 test('punctuation in A.B. Cop is not treated as a file extension',()=>{
  assert.equal(matchLibretroFilename({title:'A.B. Cop',id:'ab'} as any,['A.B. Cop (FD1094 317-0169b).png']),'A.B. Cop (FD1094 317-0169b).png');
 });
