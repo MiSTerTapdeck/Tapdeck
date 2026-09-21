@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {parseArtworkDirectory,matchLibretroFilename,libretroSystemsFor,libretroArtworkIdentity,artworkCacheFilename,libretroArtworkUrl} from '../src/domain/libretroNaming.ts';
+import {launchRoutesFor} from '../src/domain/misterRemote.ts';
 test('Eco Fighters resolves from a directory containing malformed percent escapes',()=>{
  const names=parseArtworkDirectory(`<a href="100% game.png">x</a><a href="Eco%20Fighters%20(USA%20940215).png">x</a>`);
  const game={title:'Eco Fighters',system:'Capcom Play II',category:'Arcade',id:'eco'} as any;
@@ -61,3 +62,9 @@ test('long ROM paths produce bounded, distinct cache filenames',()=>{
  assert.notEqual(artworkCacheFilename(id),artworkCacheFilename(id+'snap'));
 });
 
+
+test('C64 and Spectrum use MiSTer Remote’s game loader before the compatibility route',()=>{
+ assert.deepEqual(launchRoutesFor({remoteSystemId:'C64'} as any),['/games/launch','/launch']);
+ assert.deepEqual(launchRoutesFor({remoteSystemId:'ZXSpectrum'} as any),['/games/launch','/launch']);
+ assert.deepEqual(launchRoutesFor({remoteSystemId:'SNES'} as any),['/launch']);
+});
