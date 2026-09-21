@@ -3,6 +3,7 @@ import {Image,StyleSheet,Text,View,type ImageSourcePropType,type ImageStyle,type
 import {fallbackThumbnail,type Game} from '../data/library';
 import {readCachedLibretroSnap,readCachedLibretroThumbnail,readLibretroSnap,readLibretroThumbnail,subscribeToArtwork,libretroArtworkIdentity,libretroSnapArtworkIdentity} from '../domain/libretro';
 import {fonts,palette as c} from '../theme';
+import {Paper} from './Paper';
 
 type Props={game:Game;style?:StyleProp<ImageStyle>;misterUrl?:string;allowDownload?:boolean;resizeMode?:'cover'|'contain';preferSnap?:boolean;onResolved?:(source:ImageSourcePropType)=>void};
 
@@ -30,7 +31,7 @@ function ArtworkImageImpl({game,style,misterUrl,allowDownload=true,resizeMode='c
   })();
   return()=>{active=false;};
  },[allowDownload,artworkVersion,game.category,game.id,game.image,game.remoteFilePath,game.remoteMediaId,game.remotePath,game.system,game.title,misterUrl,preferSnap]);
- if(!source)return <View style={[styles.missing,style]}><Text style={styles.missingText}>No artwork available</Text></View>;
+ if(!source)return <View style={[styles.missing,style]}><Paper opacity={.5}/><Text style={styles.missingText}>No artwork available</Text></View>;
  return <Image source={source} resizeMode={resizeMode} style={style} accessibilityLabel={`${game.title} artwork`}/>;
 }
 
