@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {parseArtworkDirectory,matchLibretroFilename,libretroSystemsFor,libretroArtworkIdentity,artworkCacheFilename,libretroArtworkUrl} from '../src/domain/libretroNaming.ts';
-import {c64TapeLoadCommands,isC64TapeImage,launchRoutesFor} from '../src/domain/misterRemote.ts';
+import {c64RunCommands,c64TapeLoadCommands,isC64TapeImage,launchRoutesFor} from '../src/domain/misterRemote.ts';
 test('Eco Fighters resolves from a directory containing malformed percent escapes',()=>{
  const names=parseArtworkDirectory(`<a href="100% game.png">x</a><a href="Eco%20Fighters%20(USA%20940215).png">x</a>`);
  const game={title:'Eco Fighters',system:'Capcom Play II',category:'Arcade',id:'eco'} as any;
@@ -73,4 +73,5 @@ test('C64 T64 files start the tape load command without changing cartridge launc
  assert.equal(isC64TapeImage({remoteSystemId:'C64',remoteFilePath:'/media/usb3/games/C64/Impossible Mission.t64'} as any),true);
  assert.equal(isC64TapeImage({remoteSystemId:'C64',remoteFilePath:'/media/usb3/games/C64/Final Cartridge.crt'} as any),false);
  assert.deepEqual(c64TapeLoadCommands(),['kbdRaw:38','kbdRaw:24','kbdRaw:30','kbdRaw:32','kbdRaw:28']);
+ assert.deepEqual(c64RunCommands(),['kbdRaw:19','kbdRaw:22','kbdRaw:49','kbdRaw:28']);
 });
