@@ -208,8 +208,8 @@ function DiscoverView({recommendations,loading,seed,hasSignals,artworkUrl,fetchR
  const [platform,setPlatform]=useState<DiscoverPlatform>('All');const [playlistMade,setPlaylistMade]=useState(false);
  const visible=platform==='All'?recommendations:recommendations.filter(item=>discoverPlatform(item.game)===platform);
  const diversified=[...visible].sort((a,b)=>b.score-a.score||a.game.title.localeCompare(b.game.title));
- const distinct=rowGamesFromSystems(diversified);const rowGames=[...distinct,...diversified.filter(item=>!distinct.some(other=>other.game.id===item.game.id))].slice(0,4);
  const [lead,...more]=diversified;
+ const withoutLead=diversified.filter(item=>item.game.id!==lead?.game.id);const distinct=rowGamesFromSystems(withoutLead);const rowGames=[...distinct,...withoutLead.filter(item=>!distinct.some(other=>other.game.id===item.game.id))].slice(0,4);
  const progress=useRef(new Animated.Value(0)).current;
  useEffect(()=>{if(!loading){progress.stopAnimation();progress.setValue(1);return;}progress.setValue(0);const loop=Animated.loop(Animated.sequence([Animated.timing(progress,{toValue:1,duration:900,useNativeDriver:false}),Animated.timing(progress,{toValue:0,duration:250,useNativeDriver:false})]));loop.start();return()=>loop.stop();},[loading,progress]);
  return <ScrollView style={s.discoverPage} contentContainerStyle={s.discoverContent} showsVerticalScrollIndicator={false}>
