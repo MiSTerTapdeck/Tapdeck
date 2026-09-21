@@ -54,3 +54,9 @@ export async function getLibretroArtworkStats():Promise<{count:number;bytes:numb
  const root=`${FileSystem.documentDirectory}tapdeck-libretro/`;
  try{const entries=await FileSystem.readDirectoryAsync(root);let bytes=0;for(const name of entries){const info=await FileSystem.getInfoAsync(`${root}${name}`);bytes+=Number((info as {size?:number}).size??0);}return {count:entries.length,bytes};}catch{return {count:0,bytes:0};}
 }
+export async function clearLibretroArtworkCache():Promise<void>{
+ webArtworkCache.clear();
+ artworkPending.clear();
+ if(!FileSystem.documentDirectory)return;
+ await FileSystem.deleteAsync(`${FileSystem.documentDirectory}tapdeck-libretro/`,{idempotent:true});
+}
