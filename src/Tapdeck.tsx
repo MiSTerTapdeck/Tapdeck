@@ -40,7 +40,7 @@ export function Label({children}:{children:React.ReactNode}) {return <Text style
 export default function App() {
  const [loaded,error]=useFonts({BodoniBold:require('@expo-google-fonts/bodoni-moda/700Bold/BodoniModa_700Bold.ttf'),BodoniItalic:require('@expo-google-fonts/bodoni-moda/500Medium_Italic/BodoniModa_500Medium_Italic.ttf'),DMSans:require('@expo-google-fonts/dm-sans/400Regular/DMSans_400Regular.ttf'),DMMedium:require('@expo-google-fonts/dm-sans/500Medium/DMSans_500Medium.ttf'),DMBold:require('@expo-google-fonts/dm-sans/700Bold/DMSans_700Bold.ttf')});
  const [showSplashPreview,setShowSplashPreview]=useState(true);
- useEffect(()=>{if(!loaded&&!error)return;const timer=setTimeout(()=>setShowSplashPreview(false),850);return()=>clearTimeout(timer);},[loaded,error]);
+ useEffect(()=>{if(!loaded&&!error)return;const timer=setTimeout(()=>setShowSplashPreview(false),300);return()=>clearTimeout(timer);},[loaded,error]);
  if(!loaded&&!error)return <View style={s.loading}><ActivityIndicator color={c.orange}/><Text style={{color:c.muted,marginTop:12}}>Opening your binder…</Text></View>;
  if(error)return <View style={s.loading}><Text>Tapdeck couldn’t load its fonts. Please reopen the app.</Text></View>;
  if(showSplashPreview)return <View style={{flex:1,backgroundColor:'#F6EBD7',alignItems:'center',justifyContent:'center'}}><StatusBar style="dark"/><Image source={require('../assets/tapdeck-splash.png')} resizeMode="contain" style={{width:270,height:270}} accessibilityLabel="Tapdeck"/></View>;
