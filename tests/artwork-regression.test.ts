@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {parseArtworkDirectory,parseArtworkDirectoryInChunks,matchLibretroFilename,libretroSystemsFor,libretroArtworkIdentity,artworkCacheFilename,libretroArtworkUrl} from '../src/domain/libretroNaming.ts';
+import {parseArtworkDirectory,parseArtworkDirectoryInChunks,matchLibretroFilename,matchLibretroFilenameInChunks,libretroSystemsFor,libretroArtworkIdentity,artworkCacheFilename,libretroArtworkUrl} from '../src/domain/libretroNaming.ts';
 import {c64RunCommands,c64TapeLoadCommands,isC64TapeImage,isSpectrumTapeImage,launchRoutesFor,spectrumTapeLoadCommands} from '../src/domain/misterRemote.ts';
 test('Eco Fighters resolves from a directory containing malformed percent escapes',()=>{
  const names=parseArtworkDirectory(`<a href="100% game.png">x</a><a href="Eco%20Fighters%20(USA%20940215).png">x</a>`);
@@ -60,6 +60,12 @@ test('Libretro directory parsing preserves apostrophes inside quoted links',()=>
 test('chunked Libretro directory parsing preserves filenames',async()=>{
  const html='<a href="Porky\'s%20(USA).png">Porky\'s</a><a href="Top%20Player\'s%20Golf.png">Top Player\'s</a>';
  assert.deepEqual(await parseArtworkDirectoryInChunks(html),parseArtworkDirectory(html));
+});
+
+test('chunked artwork matching preserves Spectrum matches in a large directory',async()=>{
+ const game={title:'Academy - Side 1',remoteFilePath:'/media/usb3/games/Spectrum/Academy - Side 1.tzx',id:'academy'} as any;
+ const names=[...Array.from({length:1000},(_,index)=>`Unrelated ${index}.png`),'Academy (1986).png'];
+ assert.equal(await matchLibretroFilenameInChunks(game,names),'Academy (1986).png');
 });
 test('long ROM paths produce bounded, distinct cache filenames',()=>{
  const id='directory/'.repeat(60);

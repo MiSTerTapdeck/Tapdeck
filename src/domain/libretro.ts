@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import type {ImageSourcePropType} from 'react-native';
 import type {Game} from '../data/library';
-import {parseArtworkDirectoryInChunks,artworkCacheFilename,libretroArtworkIdentity,libretroArtworkUrl,libretroSnapArtworkIdentity,libretroSystemsFor,matchLibretroFilename,type LibretroArtworkKind} from './libretroNaming';
+import {parseArtworkDirectoryInChunks,artworkCacheFilename,libretroArtworkIdentity,libretroArtworkUrl,libretroSnapArtworkIdentity,libretroSystemsFor,matchLibretroFilenameInChunks,type LibretroArtworkKind} from './libretroNaming';
 export {libretroArtworkIdentity,libretroSnapArtworkIdentity,libretroSystemsFor} from './libretroNaming';
 const indexes=new Map<string,string[]>(); const indexPending=new Map<string,Promise<string[]>>(); const ROOT='https://thumbnails.libretro.com';
 const webArtworkCache=new Map<string,string>();
@@ -25,7 +25,7 @@ async function cachedLocalSource(id:string):Promise<ImageSourcePropType|undefine
 async function read(game:Game,kind:LibretroArtworkKind,id:string){
  const existing=artworkPending.get(id);if(existing)return existing;
  const request=(async()=>{const cached=await cachedLocalSource(id);if(cached)return cached;
- const config=libretroSystemsFor(game);if(!config)return;const target=localUri(id);for(const dir of config.directories){try{const filename=matchLibretroFilename(game,await index(dir,kind));if(!filename)continue;const url=libretroArtworkUrl(dir,kind,filename);if(!target){webArtworkCache.set(id,url);announceArtwork(id);return {uri:url};}await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory+'tapdeck-libretro/',{intermediates:true}).catch(()=>{});const result=await queueDownload(()=>FileSystem.downloadAsync(url,target));if(result.status===200){
+ const config=libretroSystemsFor(game);if(!config)return;const target=localUri(id);for(const dir of config.directories){try{const filename=await matchLibretroFilenameInChunks(game,await index(dir,kind));if(!filename)continue;const url=libretroArtworkUrl(dir,kind,filename);if(!target){webArtworkCache.set(id,url);announceArtwork(id);return {uri:url};}await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory+'tapdeck-libretro/',{intermediates:true}).catch(()=>{});const result=await queueDownload(()=>FileSystem.downloadAsync(url,target));if(result.status===200){
     webArtworkCache.set(id,target);announceArtwork(id);
     return {uri:target};
    }else{throw new Error("Download HTTP "+result.status);}}catch(error){console.warn("[Artwork] "+game.title+" | "+dir+"/"+kind,String(error));}}})();

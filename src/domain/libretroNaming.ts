@@ -21,6 +21,14 @@ export function matchLibretroFilename(game:Game,names:string[]){
  // while avoiding short generic matches.
  for(const candidate of artworkCandidates(game))for(const variant of titleVariants(candidate)){const candidateNorm=normalizedTitle(variant);if(candidateNorm.length<6||titleWords(variant).length<2)continue;const embedded=names.find(name=>normalizedTitle(name).includes(candidateNorm));if(embedded)return embedded;}
  let best:{name:string;score:number}|undefined;for(const candidate of artworkCandidates(game)){const candidateWords=titleWords(candidate);if(candidateWords.length<2)continue;for(const name of names){const nameWords=titleWords(name);const shared=new Set(candidateWords.filter(word=>nameWords.includes(word))).size;const score=shared/Math.max(candidateWords.length,nameWords.length);if(shared>=2&&score>=.7&&(!best||score>best.score))best={name,score};}}return best?.name;}
+const yieldToUi=()=>new Promise<void>(resolve=>setTimeout(resolve,0));
+export async function matchLibretroFilenameInChunks(game:Game,names:string[]):Promise<string|undefined>{
+ if(names.length<1000)return matchLibretroFilename(game,names);
+ let scanned=0;const pause=async()=>{if(++scanned%80===0)await yieldToUi();};
+ for(const candidate of artworkCandidates(game))for(const variant of titleVariants(candidate)){const candidateNorm=normalizedTitle(variant);for(const name of names){if(normalizedTitle(name)===candidateNorm)return name;await pause();}}
+ for(const candidate of artworkCandidates(game))for(const variant of titleVariants(candidate)){const candidateNorm=normalizedTitle(variant);if(candidateNorm.length<6||titleWords(variant).length<2)continue;for(const name of names){if(normalizedTitle(name).includes(candidateNorm))return name;await pause();}}
+ let best:{name:string;score:number}|undefined;for(const candidate of artworkCandidates(game)){const candidateWords=titleWords(candidate);if(candidateWords.length<2)continue;for(const name of names){const nameWords=titleWords(name);const shared=new Set(candidateWords.filter(word=>nameWords.includes(word))).size;const score=shared/Math.max(candidateWords.length,nameWords.length);if(shared>=2&&score>=.7&&(!best||score>best.score))best={name,score};await pause();}}return best?.name;
+}
 const encodePathSegment=(value:string)=>encodeURIComponent(value).replace(/[!'()*]/g,character=>`%${character.charCodeAt(0).toString(16).toUpperCase()}`);
 export function libretroArtworkUrl(directory:string,kind:LibretroArtworkKind,filename:string){return `https://thumbnails.libretro.com/${encodePathSegment(directory)}/${kind}/${encodePathSegment(filename)}`;}
 
