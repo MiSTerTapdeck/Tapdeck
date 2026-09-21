@@ -91,7 +91,7 @@ function Tapdeck() {
   if(Platform.OS==='web'){const handler=(e:KeyboardEvent)=>{if(e.key==='Escape')back();};document.addEventListener('keydown',handler);return()=>{subscription.remove();document.removeEventListener('keydown',handler);};}
   return()=>subscription.remove();
  },[selected,panel]);
- useEffect(()=>{if(!ready||!libraryHydrated||!shouldAutoConnect||!misterUrl||connected||connecting)return;const timer=setTimeout(()=>{autoConnectAttempts.current+=1;void reconnectSavedMiSTer().then(success=>{if(success)setShouldAutoConnect(false);else{setConnected(false);if(autoConnectAttempts.current<2)setTimeout(()=>setShouldAutoConnect(true),1500);else setShouldAutoConnect(false);}});},0);return()=>clearTimeout(timer);},[ready,libraryHydrated,shouldAutoConnect,misterUrl,connected,connecting]);
+ useEffect(()=>{if(!ready||!shouldAutoConnect||!misterUrl||connected||connecting)return;const timer=setTimeout(()=>{autoConnectAttempts.current+=1;void reconnectSavedMiSTer().then(success=>{if(success)setShouldAutoConnect(false);else{setConnected(false);if(autoConnectAttempts.current<2)setTimeout(()=>setShouldAutoConnect(true),1500);else setShouldAutoConnect(false);}});},0);return()=>clearTimeout(timer);},[ready,shouldAutoConnect,misterUrl,connected,connecting]);
  useEffect(()=>{if(ready&&!misterUrl&&!promptedForConnection.current){promptedForConnection.current=true;setPanel('device');}},[ready,misterUrl]);
  async function toggleSaved(game:Game){
   if(!ready||saving.current)return;saving.current=true;tap();

@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SQLite from 'expo-sqlite';
+import * as FileSystem from 'expo-file-system/legacy';
 import {Platform} from 'react-native';
 import type {Game} from '../data/library';
+import {artworkCacheFilename} from './libretroNaming';
 
 const LEGACY_KEY='tapdeck.mister-library.v1';
 const CACHE_KEY='mister-library';
@@ -34,10 +36,11 @@ export async function saveCachedMiSTerLibrary(games:Game[]):Promise<void>{
  await AsyncStorage.setItem(LEGACY_KEY,value);
 }
 
-export async function loadCachedArtwork(key:string):Promise<string|undefined>{if(Platform.OS==='web')return undefined;return (await withDatabase(db=>db.getFirstAsync<{value:string}>('SELECT value FROM artwork WHERE key = ?',[key])))?.value;}
-export async function saveCachedArtwork(key:string,value:string):Promise<void>{if(Platform.OS==='web')return;await withDatabase(db=>db.runAsync('INSERT OR REPLACE INTO artwork (key, value) VALUES (?, ?)',[key,value]));}
+function artworkFile(key:string){return FileSystem.documentDirectory?`${FileSystem.documentDirectory}tapdeck-artwork/${artworkCacheFilename(key)}`:undefined;}
+export async function loadCachedArtwork(key:string):Promise<string|undefined>{if(Platform.OS==='web')return undefined;const file=artworkFile(key);if(file){try{if((await FileSystem.getInfoAsync(file)).exists)return file;}catch{}}return (await withDatabase(db=>db.getFirstAsync<{value:string}>('SELECT value FROM artwork WHERE key = ?',[key])))?.value;}
+export async function saveCachedArtwork(key:string,value:string):Promise<void>{if(Platform.OS==='web')return;const file=artworkFile(key);if(file&&value.startsWith('data:')){await FileSystem.makeDirectoryAsync(`${FileSystem.documentDirectory}tapdeck-artwork/`,{intermediates:true});const payload=value.slice(value.indexOf(',')+1);await FileSystem.writeAsStringAsync(file,payload,{encoding:FileSystem.EncodingType.Base64});return;}await withDatabase(db=>db.runAsync('INSERT OR REPLACE INTO artwork (key, value) VALUES (?, ?)',[key,value]));}
 
-export async function getCachedArtworkStats():Promise<{count:number;bytes:number}>{if(Platform.OS==='web')return {count:0,bytes:0};const row=await withDatabase(db=>db.getFirstAsync<{count:number;bytes:number}>('SELECT COUNT(*) AS count, COALESCE(SUM(LENGTH(value)), 0) AS bytes FROM artwork'));return {count:Number(row?.count??0),bytes:Number(row?.bytes??0)};}
+export async function getCachedArtworkStats():Promise<{count:number;bytes:number}>{if(Platform.OS==='web')return {count:0,bytes:0};const root=FileSystem.documentDirectory?`${FileSystem.documentDirectory}tapdeck-artwork/`:undefined;if(root){try{const entries=await FileSystem.readDirectoryAsync(root);let bytes=0;for(const name of entries){const info=await FileSystem.getInfoAsync(`${root}${name}`);bytes+=Number(info.size??0);}return {count:entries.length,bytes};}catch{}}try{const row=await withDatabase(db=>db.getFirstAsync<{count:number;bytes:number}>('SELECT COUNT(*) AS count, COALESCE(SUM(LENGTH(value)), 0) AS bytes FROM artwork'));return {count:Number(row?.count??0),bytes:Number(row?.bytes??0)};}catch{return {count:0,bytes:0};}}
 
 export async function getCachedArtworkBySystem(games:Game[],url:string):Promise<{system:string;cached:number;total:number}[]>{
  if(Platform.OS==='web'||!url)return [];
