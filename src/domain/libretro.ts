@@ -20,7 +20,13 @@ function localUri(id:string){return FileSystem.documentDirectory?`${FileSystem.d
 async function read(game:Game,kind:LibretroArtworkKind,id:string){
  const existing=artworkPending.get(id);if(existing)return existing;
  const request=(async()=>{const cached=webArtworkCache.get(id)??await loadCachedArtwork(id).catch(()=>undefined);if(cached){if(!FileSystem.documentDirectory||cached.startsWith('http'))return {uri:cached};if((await FileSystem.getInfoAsync(cached)).exists){webArtworkCache.set(id,cached);return {uri:cached};}}
-  const config=libretroSystemsFor(game);if(!config)return;const target=localUri(id);for(const dir of config.directories){try{const filename=matchLibretroFilename(game,await index(dir,kind));if(!filename)continue;const url=libretroArtworkUrl(dir,kind,filename);if(!target){webArtworkCache.set(id,url);announceArtwork(id);return {uri:url};}await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory+'tapdeck-libretro/',{intermediates:true}).catch(()=>{});const result=await queueDownload(()=>FileSystem.downloadAsync(url,target));if(result.status===200){await saveCachedArtwork(id,target);webArtworkCache.set(id,target);announceArtwork(id);return {uri:target};}else{throw new Error("Download HTTP "+result.status);}}catch(error){console.warn("[Artwork] "+game.title+" | "+dir+"/"+kind,String(error));}}})();
+ const config=libretroSystemsFor(game);if(!config)return;const target=localUri(id);for(const dir of config.directories){try{const filename=matchLibretroFilename(game,await index(dir,kind));if(!filename)continue;const url=libretroArtworkUrl(dir,kind,filename);if(!target){webArtworkCache.set(id,url);announceArtwork(id);return {uri:url};}await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory+'tapdeck-libretro/',{intermediates:true}).catch(()=>{});const result=await queueDownload(()=>FileSystem.downloadAsync(url,target));if(result.status===200){
+    // The file is usable even if the SQLite index is temporarily locked. Do not
+    // discard a successful download just because persistence needs a retry.
+    webArtworkCache.set(id,target);announceArtwork(id);
+    try{await saveCachedArtwork(id,target);}catch(error){console.warn("[Artwork cache index] "+game.title+" | "+String(error));}
+    return {uri:target};
+   }else{throw new Error("Download HTTP "+result.status);}}catch(error){console.warn("[Artwork] "+game.title+" | "+dir+"/"+kind,String(error));}}})();
  artworkPending.set(id,request);try{return await request;}finally{artworkPending.delete(id);}
 }
 async function validCachedSource(id:string){const uri=webArtworkCache.get(id)??await loadCachedArtwork(id).catch(()=>undefined);if(!uri)return undefined;if(uri.startsWith('http'))return {uri};if(!FileSystem.documentDirectory)return undefined;try{return (await FileSystem.getInfoAsync(uri)).exists?{uri}:undefined;}catch{return undefined;}}
