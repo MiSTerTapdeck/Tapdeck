@@ -14,7 +14,6 @@ function ArtworkImageImpl({game,style,misterUrl,allowDownload=true,resizeMode='c
  useEffect(()=>{
   let active=true;
   setSource(preferSnap?fallbackThumbnail(game.genre):(game.image??fallbackThumbnail(game.genre)));
-  if(game.image&&game.remoteMediaId===undefined&&!preferSnap)return()=>{active=false;};
   const publish=(value:ImageSourcePropType|undefined)=>{if(active&&value){setSource(value);onResolved?.(value);return true;}return false;};
   void (async()=>{
    const url=misterUrl?normaliseMiSTerUrl(misterUrl):undefined;
