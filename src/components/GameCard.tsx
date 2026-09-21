@@ -6,7 +6,7 @@ import {fonts,palette as c} from '../theme';
 import {Paper} from './Paper';
 import {Icon} from './Icon';
 import {ArtworkImage} from './ArtworkImage';
-export function GameCard({game,index,saved,onPress,reducedMotion,artworkUrl,fetchRemote}:{game:Game;index:number;saved:boolean;onPress:()=>void;reducedMotion:boolean;artworkUrl?:string;fetchRemote?:boolean}) {
+function GameCardImpl({game,index,saved,onPress,reducedMotion,artworkUrl,fetchRemote}:{game:Game;index:number;saved:boolean;onPress:()=>void;reducedMotion:boolean;artworkUrl?:string;fetchRemote?:boolean}) {
  const scale=useRef(new Animated.Value(1)).current;
  const vintage=isVintage(game.year);
  const animate=(toValue:number)=>{if(!reducedMotion)Animated.spring(scale,{toValue,useNativeDriver:Platform.OS!=='web',speed:35,bounciness:0}).start();};
@@ -21,6 +21,7 @@ export function GameCard({game,index,saved,onPress,reducedMotion,artworkUrl,fetc
  <Text style={s.subtitle}>{game.system} <Text style={{color:'#AA9C85'}}>·</Text> {game.year??'Year unknown'}{!vintage?'  ·  Recent release':''}</Text>
  </Pressable>;
 }
+export const GameCard=React.memo(GameCardImpl,(a,b)=>a.game.id===b.game.id&&a.game.image===b.game.image&&a.index===b.index&&a.saved===b.saved&&a.reducedMotion===b.reducedMotion&&a.artworkUrl===b.artworkUrl&&a.onPress===b.onPress);
 const s=StyleSheet.create({
  card:{borderRadius:9,padding:9,borderWidth:1,borderColor:'#CCB994',boxShadow:'0px 3px 5px rgba(64,43,15,0.16)',overflow:'hidden'},
  top:{height:23,flexDirection:'row',alignItems:'flex-start',justifyContent:'space-between',gap:4},
