@@ -2,7 +2,6 @@ import React,{useEffect,useState} from 'react';
 import {Image,StyleSheet,Text,View,type ImageSourcePropType,type ImageStyle,type StyleProp} from 'react-native';
 import {fallbackThumbnail,type Game} from '../data/library';
 import {readCachedLibretroSnap,readCachedLibretroThumbnail,readLibretroSnap,readLibretroThumbnail,subscribeToArtwork,libretroArtworkIdentity,libretroSnapArtworkIdentity} from '../domain/libretro';
-import {normaliseMiSTerUrl,readCachedMiSTerThumbnail} from '../domain/mister';
 import {fonts,palette as c} from '../theme';
 
 type Props={game:Game;style?:StyleProp<ImageStyle>;misterUrl?:string;allowDownload?:boolean;resizeMode?:'cover'|'contain';preferSnap?:boolean;onResolved?:(source:ImageSourcePropType)=>void};
@@ -16,8 +15,6 @@ function ArtworkImageImpl({game,style,misterUrl,allowDownload=true,resizeMode='c
 
   const publish=(value:ImageSourcePropType|undefined)=>{if(active&&value){setSource(value);onResolved?.(value);return true;}return false;};
   void (async()=>{
-   const url=misterUrl?normaliseMiSTerUrl(misterUrl):undefined;
-   if(!preferSnap&&url&&game.remoteMediaId!==undefined&&publish(await readCachedMiSTerThumbnail(url,game.remoteMediaId,game.category).catch(()=>undefined)))return;
    if(preferSnap){
     if(publish(await readCachedLibretroSnap(game).catch(()=>undefined)))return;
     if(allowDownload&&publish(await readLibretroSnap(game).catch(()=>undefined)))return;

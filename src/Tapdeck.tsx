@@ -14,7 +14,7 @@ import {discoverPlatform,recommendGames,type DiscoverPlatform} from './domain/di
 import {batchDownloadLibretro,readLibretroSnap,readLibretroThumbnail} from './domain/libretro';
 import {checkMiSTer,displayGenre,normaliseMiSTerUrl,clearMiSTerArtworkMemoryCache,readCachedMiSTerThumbnail,readMiSTerLibrary,readMiSTerMetadata,readMiSTerThumbnail} from './domain/mister';
 import {launchMiSTerRemoteGame} from './domain/misterRemote';
-import {getCachedArtworkBySystem,getCachedArtworkStats,loadCachedMiSTerLibrary,saveCachedMiSTerLibrary} from './domain/misterCache';
+import {clearLegacyArtworkCaches,getCachedArtworkBySystem,getCachedArtworkStats,loadCachedMiSTerLibrary,saveCachedMiSTerLibrary} from './domain/misterCache';
 import {GameCard} from './components/GameCard';
 import {GameRow} from './components/GameRow';
 import {ArtworkImage} from './components/ArtworkImage';
@@ -27,6 +27,7 @@ const SAVED_KEY='tapdeck.saved.v1';
 const PLAYLISTS_KEY='tapdeck.playlists.v1';
 const MISTER_URL_KEY='tapdeck.mister-url.v1';
 const MISTER_LIBRARY_KEY='tapdeck.mister-library.v1';
+const ARTWORK_PURGED_KEY='tapdeck.artwork-cache-reset.v1';
 const PLAY_HISTORY_KEY='tapdeck.play-history.v1';
 const STANDARD_FAVOURITES_ID='standard-favourites';
 const STANDARD_LAST_PLAYED_ID='standard-last-played';
@@ -75,7 +76,8 @@ function Tapdeck() {
  function notify(message:string){setNotice(message);if(noticeTimer.current)clearTimeout(noticeTimer.current);noticeTimer.current=setTimeout(()=>setNotice(''),2600);}
  function showPanel(next:Exclude<typeof panel,null>){Keyboard.dismiss();setPanel(next);}
  useEffect(()=>{
-  let active=true;
+ let active=true;
+ void AsyncStorage.getItem(ARTWORK_PURGED_KEY).then(flag=>{if(!flag)return clearLegacyArtworkCaches().then(()=>AsyncStorage.setItem(ARTWORK_PURGED_KEY,'1'));});
   // Hydrate the local library independently so the default Arcade list can paint
   // while preferences and the saved-IP reconnect continue in parallel.
   void loadCachedMiSTerLibrary().then(cachedLibrary=>{if(!active)return;const normalized=cachedLibrary.map(game=>({...game,genre:displayGenre(game.genre)}));setLibraryRecords(normalized);setLibraryHydrated(true);void getCachedArtworkBySystem(normalized,'').then(setArtworkCacheBySystem).catch(()=>{});}).catch(()=>{if(active)setLibraryHydrated(true);});
