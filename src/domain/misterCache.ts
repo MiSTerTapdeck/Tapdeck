@@ -7,6 +7,14 @@ const LEGACY_KEY='tapdeck.mister-library.v1';
 const CACHE_KEY='mister-library';
 let database:SQLite.SQLiteDatabase|undefined;
 let databasePromise:Promise<SQLite.SQLiteDatabase>|undefined;
+// expo-sqlite can reject overlapping statements on the same native connection.
+// Serialize cache access so artwork loads cannot race library saves/stats reads.
+let databaseQueue=Promise.resolve();
+async function withDatabase<T>(operation:(db:SQLite.SQLiteDatabase)=>Promise<T>):Promise<T>{
+ const run=databaseQueue.then(async()=>operation(await getDatabase()));
+ databaseQueue=run.then(()=>undefined,()=>undefined);
+ return run;
+}
 
 function parseGames(raw:string):Game[]{try{return validGames(JSON.parse(raw));}catch{return [];}}
 function validGames(value:unknown):Game[]{
@@ -20,8 +28,7 @@ async function getDatabase(){
 }
 export async function loadCachedMiSTerLibrary():Promise<Game[]>{
  if(Platform.OS==='web')return parseGames(await AsyncStorage.getItem(LEGACY_KEY)??'[]');
- const db=await getDatabase();
- const record=await db.getFirstAsync<{value:string}>('SELECT value FROM cache WHERE key = ?',[CACHE_KEY]);
+ const record=await withDatabase(db=>db.getFirstAsync<{value:string}>('SELECT value FROM cache WHERE key = ?',[CACHE_KEY]));
  if(record?.value)return parseGames(record.value);
  const legacy=await AsyncStorage.getItem(LEGACY_KEY);
  if(!legacy)return [];
@@ -32,19 +39,17 @@ export async function loadCachedMiSTerLibrary():Promise<Game[]>{
 export async function saveCachedMiSTerLibrary(games:Game[]):Promise<void>{
  const value=JSON.stringify(games.map(({image,scene,...game})=>game));
  if(Platform.OS==='web'){await AsyncStorage.setItem(LEGACY_KEY,value);return;}
- const db=await getDatabase();
- await db.runAsync('INSERT OR REPLACE INTO cache (key, value) VALUES (?, ?)',[CACHE_KEY,value]);
+ await withDatabase(db=>db.runAsync('INSERT OR REPLACE INTO cache (key, value) VALUES (?, ?)',[CACHE_KEY,value]));
 }
 
-export async function loadCachedArtwork(key:string):Promise<string|undefined>{if(Platform.OS==='web')return undefined;const db=await getDatabase();return (await db.getFirstAsync<{value:string}>('SELECT value FROM artwork WHERE key = ?',[key]))?.value;}
-export async function saveCachedArtwork(key:string,value:string):Promise<void>{if(Platform.OS==='web')return;const db=await getDatabase();await db.runAsync('INSERT OR REPLACE INTO artwork (key, value) VALUES (?, ?)',[key,value]);}
+export async function loadCachedArtwork(key:string):Promise<string|undefined>{if(Platform.OS==='web')return undefined;return (await withDatabase(db=>db.getFirstAsync<{value:string}>('SELECT value FROM artwork WHERE key = ?',[key])))?.value;}
+export async function saveCachedArtwork(key:string,value:string):Promise<void>{if(Platform.OS==='web')return;await withDatabase(db=>db.runAsync('INSERT OR REPLACE INTO artwork (key, value) VALUES (?, ?)',[key,value]));}
 
-export async function getCachedArtworkStats():Promise<{count:number;bytes:number}>{if(Platform.OS==='web')return {count:0,bytes:0};const db=await getDatabase();const row=await db.getFirstAsync<{count:number;bytes:number}>('SELECT COUNT(*) AS count, COALESCE(SUM(LENGTH(value)), 0) AS bytes FROM artwork');return {count:Number(row?.count??0),bytes:Number(row?.bytes??0)};}
+export async function getCachedArtworkStats():Promise<{count:number;bytes:number}>{if(Platform.OS==='web')return {count:0,bytes:0};const row=await withDatabase(db=>db.getFirstAsync<{count:number;bytes:number}>('SELECT COUNT(*) AS count, COALESCE(SUM(LENGTH(value)), 0) AS bytes FROM artwork'));return {count:Number(row?.count??0),bytes:Number(row?.bytes??0)};}
 
 export async function getCachedArtworkBySystem(games:Game[],url:string):Promise<{system:string;cached:number;total:number}[]>{
  if(Platform.OS==='web'||!url)return [];
- const db=await getDatabase();
- const rows=await db.getAllAsync<{key:string}>('SELECT key FROM artwork');
+ const rows=await withDatabase(db=>db.getAllAsync<{key:string}>('SELECT key FROM artwork'));
  const keys=new Set(rows.map(row=>row.key));
  const totals=new Map<string,{cached:number;total:number}>();
  for(const game of games){
