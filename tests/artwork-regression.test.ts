@@ -20,6 +20,19 @@ test('Neo Geo MVS artwork uses a new cache identity after the source correction'
  const game={title:'Samurai Shodown',system:'Neo Geo MVS',remoteSystemId:'neogeo-mvs',remoteFilePath:'/media/fat/games/Neo Geo MVS/samsho.zip',category:'Arcade',id:'samsho'} as any;
  assert.match(libretroArtworkIdentity(game),/neo-geo-source-v2/);
 });
+test('ZX Spectrum artwork uses a new cache identity after the matcher correction',()=>{
+ const game={title:'Academy - Side 1',system:'ZXSpectrum',remoteSystemId:'ZXSpectrum',remoteFilePath:'/media/usb3/games/Spectrum/Academy - Side 1.tzx',category:'Computers',id:'academy'} as any;
+ assert.match(libretroArtworkIdentity(game),/spectrum-match-v2/);
+});
+test('Spectrum tape sides resolve to their base game and never a short unrelated title',()=>{
+ const game={title:'Academy - Side 1',remoteFilePath:'/media/usb3/games/Spectrum/Academy - Side 1.tzx',id:'academy'} as any;
+ assert.equal(matchLibretroFilename(game,['iD (Nu Wave Software).png','Academy (CRL Group).png']),'Academy (CRL Group).png');
+ assert.equal(matchLibretroFilename(game,['iD (Nu Wave Software).png','Para Academy (Zeppelin Games Ltd).png']),undefined);
+});
+test('Spectrum sequels do not fall back to a shorter game title',()=>{
+ const game={title:'Alien8',remoteFilePath:'/media/usb3/games/Spectrum/Alien8.tzx',id:'alien8'} as any;
+ assert.equal(matchLibretroFilename(game,['Alien (Mind Games).png','Alien 8 (Ultimate Play The Game).png']),'Alien 8 (Ultimate Play The Game).png');
+});
 test('punctuation in A.B. Cop is not treated as a file extension',()=>{
  assert.equal(matchLibretroFilename({title:'A.B. Cop',id:'ab'} as any,['A.B. Cop (FD1094 317-0169b).png']),'A.B. Cop (FD1094 317-0169b).png');
 });
