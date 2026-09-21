@@ -1,6 +1,4 @@
 import type {Category,Game} from '../data/library';
-import type {ImageSourcePropType} from 'react-native';
-import {loadCachedArtwork,saveCachedArtwork} from './misterCache';
 
 type RemoteSystem={id:string;name:string;category?:string};
 type RemoteGame={mediaId?:number;name:string;path:string;zapScript:string;hasCover?:boolean;isMissing?:boolean|number;missing?:boolean|number;tags?:{type:string;tag:string}[];system:RemoteSystem};
@@ -50,42 +48,10 @@ export async function readMiSTerLibrary(url:string,onProgress?:(found:number)=>v
  const recordIds=new Set<string>();
  return [...unique.values()].map(item=>item.record).filter(record=>!recordIds.has(record.id)&&!!recordIds.add(record.id)).sort((a,b)=>a.title.localeCompare(b.title));
 }
-export async function launchMiSTerGame(url:string,zapScript:string){await rpc<null>(url,'run',{text:zapScript});}
-const artworkCache=new Map<string,ImageSourcePropType|undefined>();
-const pendingArtwork=new Map<string,Promise<ImageSourcePropType|undefined>>();
-const artworkQueue:(()=>void)[]=[];
-let activeArtworkRequests=0;
-function queueArtwork<T>(work:()=>Promise<T>):Promise<T>{return new Promise((resolve,reject)=>{const run=()=>{activeArtworkRequests+=1;void work().then(resolve,reject).finally(()=>{activeArtworkRequests-=1;artworkQueue.shift()?.();});};if(activeArtworkRequests<2)run();else artworkQueue.push(run);});}
-export function thumbnailArtworkRequest(category:Category){return {imageTypes:category==='Arcade'?['thumbnail','boxart','boxart3d','image','screenshot']:['thumbnail','boxart','boxart3d','image'],maxSize:128};}
-function artworkKey(url:string,mediaId:number,imageTypes:string[],maxSize:number){return `${url}|${mediaId}|${imageTypes.join(',')}|${maxSize}`;}
-
-/** Reads only the retained on-device image. It never contacts MiSTer. */
-export async function readCachedMiSTerArtwork(url:string,mediaId:number,imageTypes=['image','thumbnail','boxart','boxart3d','screenshot'],maxSize=768):Promise<ImageSourcePropType|undefined>{
- const key=artworkKey(url,mediaId,imageTypes,maxSize);
- if(artworkCache.has(key))return artworkCache.get(key);
- const cached=await loadCachedArtwork(key);
- if(!cached)return undefined;
- const image={uri:cached};artworkCache.set(key,image);return image;
-}
-
-/** Uses the retained image first, then asks MiSTer only when it is not already cached. */
-export function readMiSTerArtwork(url:string,mediaId:number,imageTypes=['image','thumbnail','boxart','boxart3d','screenshot'],maxSize=768):Promise<ImageSourcePropType|undefined>{
- const key=artworkKey(url,mediaId,imageTypes,maxSize);
- if(artworkCache.has(key))return Promise.resolve(artworkCache.get(key));
- const pending=pendingArtwork.get(key);if(pending)return pending;
- const request=queueArtwork(async()=>{const cached=await readCachedMiSTerArtwork(url,mediaId,imageTypes,maxSize);if(cached)return cached;const result=await rpc<{data?:string;contentType?:string}>(url,'media.image',{mediaId,imageTypes,maxSize},20000);const image=result.data?{uri:`data:${result.contentType??'image/webp'};base64,${result.data}`} :undefined;if(image)await saveCachedArtwork(key,image.uri);artworkCache.set(key,image);return image;});
- pendingArtwork.set(key,request);void request.then(()=>pendingArtwork.delete(key),()=>pendingArtwork.delete(key));
- return request;
-}
-
-export function readCachedMiSTerThumbnail(url:string,mediaId:number,category:Category){const {imageTypes,maxSize}=thumbnailArtworkRequest(category);return readCachedMiSTerArtwork(url,mediaId,imageTypes,maxSize);}
-export function readMiSTerThumbnail(url:string,mediaId:number,category:Category){const {imageTypes,maxSize}=thumbnailArtworkRequest(category);return readMiSTerArtwork(url,mediaId,imageTypes,maxSize);}
 export async function readMiSTerMetadata(url:string,mediaId:number):Promise<Partial<Game>>{
  const result=await rpc<{media?:{title?:{tags?:{type:string;tag:string}[];properties?:Record<string,{text?:string}>};properties?:Record<string,{text?:string}>}}>(url,'media.meta',{mediaId});
  const title=result.media?.title;const tags=title?.tags??[];const tag=(...types:string[])=>tags.find(item=>types.includes(item.type.toLowerCase()))?.tag;const description=title?.properties?.['property:description']?.text??result.media?.properties?.['property:description']?.text;
  return {year:Number(tag('year','releasedate'))||null,developer:tag('developer','publisher','manufacturer')??undefined,genre:displayGenre(tag('genre')),players:tag('players')??undefined,description};
 }
-
-export function clearMiSTerArtworkMemoryCache(){artworkCache.clear();}
 
 

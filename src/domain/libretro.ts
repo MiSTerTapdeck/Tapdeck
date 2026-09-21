@@ -1,13 +1,12 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import type {ImageSourcePropType} from 'react-native';
 import type {Game} from '../data/library';
-import {loadCachedArtwork,saveCachedArtwork} from './misterCache';
 import {parseArtworkDirectory,artworkCacheFilename,libretroArtworkIdentity,libretroArtworkUrl,libretroSnapArtworkIdentity,libretroSystemsFor,matchLibretroFilename,type LibretroArtworkKind} from './libretroNaming';
 export {libretroArtworkIdentity,libretroSnapArtworkIdentity,libretroSystemsFor} from './libretroNaming';
 const indexes=new Map<string,string[]>(); const indexPending=new Map<string,Promise<string[]>>(); const ROOT='https://thumbnails.libretro.com';
 const webArtworkCache=new Map<string,string>();
-// Share cache reads and downloads between list rows, cards, and Discover. Without
-// this, the same game can start several SQLite/index/download operations at once.
+// Share cache reads and downloads between list rows, cards, and Discover so the
+// same game never starts duplicate filesystem checks, indexing, or downloads.
 const artworkPending=new Map<string,Promise<ImageSourcePropType|undefined>>();
 const downloadLimit=3;let activeDownloads=0;const downloadQueue:Array<{job:()=>Promise<any>;resolve:(value:any)=>void;reject:(error:unknown)=>void}>=[];
 function pumpDownloads(){while(activeDownloads<downloadLimit&&downloadQueue.length){const next=downloadQueue.shift()!;activeDownloads+=1;next.job().then(next.resolve,next.reject).finally(()=>{activeDownloads-=1;pumpDownloads();});}}
@@ -17,19 +16,22 @@ export function subscribeToArtwork(listener:(id:string)=>void){artworkListeners.
 function announceArtwork(id:string){for(const listener of artworkListeners)listener(id);}
 async function index(dir:string,kind:LibretroArtworkKind){const k=`${dir}:${kind}`;if(indexes.has(k))return indexes.get(k)!;const pending=indexPending.get(k);if(pending)return pending;const request=(async()=>{const response=await fetch(`${ROOT}/${encodeURIComponent(dir)}/${kind}/`);if(!response.ok)throw new Error(`Libretro index ${response.status}`);const html=await response.text();const names=parseArtworkDirectory(html);if(!names.length)throw new Error("Empty artwork directory: "+dir+"/"+kind);indexes.set(k,names);return names;})();indexPending.set(k,request);try{return await request;}finally{indexPending.delete(k);}}
 function localUri(id:string){return FileSystem.documentDirectory?`${FileSystem.documentDirectory}tapdeck-libretro/${artworkCacheFilename(id)}`:undefined;}
+async function cachedLocalSource(id:string):Promise<ImageSourcePropType|undefined>{
+ const remembered=webArtworkCache.get(id);if(remembered)return {uri:remembered};
+ const target=localUri(id);if(!target)return undefined;
+ try{if((await FileSystem.getInfoAsync(target)).exists){webArtworkCache.set(id,target);return {uri:target};}}catch{}
+ return undefined;
+}
 async function read(game:Game,kind:LibretroArtworkKind,id:string){
  const existing=artworkPending.get(id);if(existing)return existing;
- const request=(async()=>{const cached=webArtworkCache.get(id)??await loadCachedArtwork(id).catch(()=>undefined);if(cached){if(!FileSystem.documentDirectory||cached.startsWith('http'))return {uri:cached};if((await FileSystem.getInfoAsync(cached)).exists){webArtworkCache.set(id,cached);return {uri:cached};}}
+ const request=(async()=>{const cached=await cachedLocalSource(id);if(cached)return cached;
  const config=libretroSystemsFor(game);if(!config)return;const target=localUri(id);for(const dir of config.directories){try{const filename=matchLibretroFilename(game,await index(dir,kind));if(!filename)continue;const url=libretroArtworkUrl(dir,kind,filename);if(!target){webArtworkCache.set(id,url);announceArtwork(id);return {uri:url};}await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory+'tapdeck-libretro/',{intermediates:true}).catch(()=>{});const result=await queueDownload(()=>FileSystem.downloadAsync(url,target));if(result.status===200){
-    // The file is usable even if the SQLite index is temporarily locked. Do not
-    // discard a successful download just because persistence needs a retry.
     webArtworkCache.set(id,target);announceArtwork(id);
-    try{await saveCachedArtwork(id,target);}catch(error){console.warn("[Artwork cache index] "+game.title+" | "+String(error));}
     return {uri:target};
    }else{throw new Error("Download HTTP "+result.status);}}catch(error){console.warn("[Artwork] "+game.title+" | "+dir+"/"+kind,String(error));}}})();
  artworkPending.set(id,request);try{return await request;}finally{artworkPending.delete(id);}
 }
-async function validCachedSource(id:string){const uri=webArtworkCache.get(id)??await loadCachedArtwork(id).catch(()=>undefined);if(!uri)return undefined;if(uri.startsWith('http'))return {uri};if(!FileSystem.documentDirectory)return undefined;try{return (await FileSystem.getInfoAsync(uri)).exists?{uri}:undefined;}catch{return undefined;}}
+async function validCachedSource(id:string){return cachedLocalSource(id);}
 export const readCachedLibretroThumbnail=(game:Game)=>validCachedSource(libretroArtworkIdentity(game));
 export const readLibretroThumbnail=(game:Game)=>read(game,'Named_Boxarts',libretroArtworkIdentity(game));
 export const readCachedLibretroSnap=(game:Game)=>validCachedSource(libretroSnapArtworkIdentity(game));
@@ -46,4 +48,9 @@ export async function batchDownloadLibretro(records:Game[],systems:string[],prog
  }};
  await Promise.all(Array.from({length:8},worker));
  return {checked:items.length,available,unmatched};
+}
+export async function getLibretroArtworkStats():Promise<{count:number;bytes:number}>{
+ if(!FileSystem.documentDirectory)return {count:0,bytes:0};
+ const root=`${FileSystem.documentDirectory}tapdeck-libretro/`;
+ try{const entries=await FileSystem.readDirectoryAsync(root);let bytes=0;for(const name of entries){const info=await FileSystem.getInfoAsync(`${root}${name}`);bytes+=Number((info as {size?:number}).size??0);}return {count:entries.length,bytes};}catch{return {count:0,bytes:0};}
 }
