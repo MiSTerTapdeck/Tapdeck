@@ -6,6 +6,7 @@ import type {Game} from '../data/library';
 import {artworkCacheFilename} from './libretroNaming';
 
 const LEGACY_KEY='tapdeck.mister-library.v1';
+const LIBRARY_FILE='tapdeck-library.json';
 const CACHE_KEY='mister-library';
 let database:SQLite.SQLiteDatabase|undefined;
 let databasePromise:Promise<SQLite.SQLiteDatabase>|undefined;
@@ -29,10 +30,12 @@ async function getDatabase(){
  return databasePromise;
 }
 export async function loadCachedMiSTerLibrary():Promise<Game[]>{
+ if(Platform.OS!=='web'&&FileSystem.documentDirectory){try{const file=`${FileSystem.documentDirectory}${LIBRARY_FILE}`;if((await FileSystem.getInfoAsync(file)).exists)return parseGames(await FileSystem.readAsStringAsync(file));}catch{}}
  return parseGames(await AsyncStorage.getItem(LEGACY_KEY)??'[]');
 }
 export async function saveCachedMiSTerLibrary(games:Game[]):Promise<void>{
  const value=JSON.stringify(games.map(({image,scene,...game})=>game));
+ if(Platform.OS!=='web'&&FileSystem.documentDirectory){await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}${LIBRARY_FILE}`,value);return;}
  await AsyncStorage.setItem(LEGACY_KEY,value);
 }
 

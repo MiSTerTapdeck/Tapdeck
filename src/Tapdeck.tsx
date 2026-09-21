@@ -103,7 +103,7 @@ function Tapdeck() {
   try{await AsyncStorage.setItem(PLAYLISTS_KEY,JSON.stringify(next));setPlaylists(next);}
   catch{notify('Could not save that playlist. Please try again.');}
  }
- async function reconnectSavedMiSTer(){try{setConnecting(true);const url=normaliseMiSTerUrl(misterUrl);await checkMiSTer(url);setConnected(true);return true;}catch{return false;}finally{setConnecting(false);}}
+ async function reconnectSavedMiSTer(){try{setConnecting(true);const url=normaliseMiSTerUrl(misterUrl);await checkMiSTer(url);setConnected(true);return true;}catch{if(libraryRecords.length&&misterUrl.trim()){setConnected(true);return true;}return false;}finally{setConnecting(false);}}
  async function connectMiSTer(refresh=false){
   try{setConnecting(true);setReadingGames(0);Keyboard.dismiss();const url=normaliseMiSTerUrl(misterUrl);await checkMiSTer(url);const found=await readMiSTerLibrary(url,setReadingGames);if(!found.length)throw new Error('Zaparoo has not indexed any games yet. Let its first library scan finish, then refresh.');setMiSTerUrl(url);setLibraryRecords(found);setConnected(true);setPanel(null);await Promise.all([AsyncStorage.setItem(MISTER_URL_KEY,url),saveCachedMiSTerLibrary(found)]);void warmMiSTerArtwork(url,found);notify(`${found.length} games read from your MiSTer.`);return true;}
   catch(error){notify(error instanceof Error?error.message:'Could not connect to your MiSTer.');if(refresh)setConnected(false);return false;}
