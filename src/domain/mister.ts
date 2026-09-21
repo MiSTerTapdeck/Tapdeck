@@ -4,6 +4,8 @@ type RemoteSystem={id:string;name:string;category?:string};
 type RemoteGame={mediaId?:number;name:string;path:string;zapScript:string;hasCover?:boolean;isMissing?:boolean|number;missing?:boolean|number;tags?:{type:string;tag:string}[];system:RemoteSystem};
 type SearchResult={results?:RemoteGame[];pagination?:{hasNextPage?:boolean;nextCursor?:string}};
 type RpcResponse<T>={id?:string|number;result?:T;error?:{message?:string}};
+export type MiSTerSystem={id:string;name:string;category?:string;mediaCount?:number};
+export type LibraryMaintenanceProgress={stage:'indexing'|'metadata'|'reading';message:string;current?:number;total?:number};
 
 export function normaliseMiSTerUrl(value:string){
  const raw=value.trim().replace(/\/+$/,'');
@@ -26,6 +28,13 @@ function rpc<T>(base:string,method:string,params?:unknown,timeoutMs=9000):Promis
   socket.onerror=(event:Event)=>{const message=(event as Event&{message?:string}).message;finish(new Error(message?`Could not reach Zaparoo: ${message}`:'Could not reach Zaparoo on your MiSTer.'));};
   socket.onclose=(event:CloseEvent)=>{if(!settled)finish(new Error(`Zaparoo closed the connection (${event.code}).`));};
  });
+}
+const pause=(milliseconds:number)=>new Promise<void>(resolve=>setTimeout(resolve,milliseconds));
+
+export async function readMiSTerSystems(url:string):Promise<MiSTerSystem[]>{
+ const result=await rpc<MiSTerSystem[]|{systems?:MiSTerSystem[]}>(url,'systems',{all:true});
+ const systems=Array.isArray(result)?result:result.systems??[];
+ return systems.filter(system=>!!system.id&&!!system.name).sort((a,b)=>a.name.localeCompare(b.name));
 }
 export async function checkMiSTer(url:string){
  const version=await rpc<{version?:string;platform?:string}>(url,'version',undefined,4000);
@@ -52,6 +61,55 @@ export async function readMiSTerMetadata(url:string,mediaId:number):Promise<Part
  const result=await rpc<{media?:{title?:{tags?:{type:string;tag:string}[];properties?:Record<string,{text?:string}>};properties?:Record<string,{text?:string}>}}>(url,'media.meta',{mediaId});
  const title=result.media?.title;const tags=title?.tags??[];const tag=(...types:string[])=>tags.find(item=>types.includes(item.type.toLowerCase()))?.tag;const description=title?.properties?.['property:description']?.text??result.media?.properties?.['property:description']?.text;
  return {year:Number(tag('year','releasedate'))||null,developer:tag('developer','publisher','manufacturer')??undefined,genre:displayGenre(tag('genre')),players:tag('players')??undefined,description};
+}
+
+type MediaStatus={database?:{indexing?:boolean;currentStep?:number;totalSteps?:number;currentStepDisplay?:string}};
+type ScraperStatus={scraping?:boolean;done?:boolean;state?:'idle'|'running'|'paused'|'completed'|'cancelled'|'failed';error?:string;processed?:number;total?:number;currentStepDisplay?:string;currentSystem?:string};
+
+async function waitForIndexing(url:string,onProgress:(progress:LibraryMaintenanceProgress)=>void){
+ await pause(350);
+ let sawIndexing=false;
+ for(let attempt=0;attempt<720;attempt+=1){
+  const status=await rpc<MediaStatus>(url,'media');
+  const database=status.database;
+  if(database?.indexing){
+   sawIndexing=true;
+   onProgress({stage:'indexing',message:database.currentStepDisplay??'Updating the MiSTer media database…',current:database.currentStep,total:database.totalSteps});
+  }else if(sawIndexing||attempt>=2)return;
+  await pause(500);
+ }
+ throw new Error('Updating the MiSTer media database took too long.');
+}
+
+async function waitForMetadata(url:string,onProgress:(progress:LibraryMaintenanceProgress)=>void){
+ await pause(350);
+ let sawWork=false;
+ for(let attempt=0;attempt<1440;attempt+=1){
+  const status=await rpc<ScraperStatus>(url,'media.scrape.status',{scraperId:'mister-docs'});
+  if(status.state==='failed')throw new Error(status.error??'MiSTer Docs metadata scraping failed.');
+  if(status.state==='cancelled')throw new Error('MiSTer Docs metadata scraping was cancelled.');
+  if(status.scraping||status.state==='running'){
+   sawWork=true;
+   onProgress({stage:'metadata',message:status.currentStepDisplay??(status.currentSystem?`Scraping ${status.currentSystem}…`:'Refreshing MiSTer Docs metadata…'),current:status.processed,total:status.total});
+  }else if(sawWork||status.done||status.state==='completed')return;
+  await pause(500);
+ }
+ throw new Error('Refreshing MiSTer Docs metadata took too long.');
+}
+
+export async function refreshMiSTerLibraryAndMetadata(url:string,systemIds:string[],onProgress:(progress:LibraryMaintenanceProgress)=>void):Promise<Game[]>{
+ const systems=systemIds.length?systemIds:undefined;
+ onProgress({stage:'indexing',message:'Starting the MiSTer media database update…'});
+ await rpc(url,'media.generate',systems?{systems}:undefined,15000);
+ await waitForIndexing(url,onProgress);
+ const scrapers=await rpc<{id:string}[]|{scrapers?:{id:string}[]}>(url,'scrapers');
+ const availableScrapers=Array.isArray(scrapers)?scrapers:scrapers.scrapers??[];
+ if(!availableScrapers.some(scraper=>scraper.id==='mister-docs'))throw new Error('MiSTer Docs metadata is not installed in Zaparoo.');
+ onProgress({stage:'metadata',message:'Starting the MiSTer Docs metadata refresh…'});
+ await rpc(url,'media.scrape',{scraperId:'mister-docs',force:true,...(systems?{systems}:{})},15000);
+ await waitForMetadata(url,onProgress);
+ onProgress({stage:'reading',message:'Saving the refreshed library in Tapdeck…'});
+ return readMiSTerLibrary(url,found=>onProgress({stage:'reading',message:'Saving the refreshed library in Tapdeck…',current:found}));
 }
 
 
