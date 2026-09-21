@@ -19,6 +19,10 @@ test('Neo Geo CD aliases embedded native titles and trailing articles',()=>{
  assert.equal(matchLibretroFilename({title:"King of Fighters '94, the",id:'kof94'} as any,names),names[1]);
  assert.equal(matchLibretroFilename({title:'Art of Fighting 3',id:'aof3'} as any,names),names[2]);
 });
+test('Neo Geo possessive titles match apostrophe variants',()=>{
+ assert.equal(matchLibretroFilename({title:"Top Player's Golf",id:'top-golf'} as any,["Top Player's Golf (NGM-003)(NGH-003).png"]),"Top Player's Golf (NGM-003)(NGH-003).png");
+ assert.equal(matchLibretroFilename({title:'Top Players Golf',id:'top-golf-2'} as any,["Top Player's Golf (NGM-003)(NGH-003).png"]),"Top Player's Golf (NGM-003)(NGH-003).png");
+});
 test('long ROM paths produce bounded, distinct cache filenames',()=>{
  const id='directory/'.repeat(60);
  assert.ok(artworkCacheFilename(id).length<40);
