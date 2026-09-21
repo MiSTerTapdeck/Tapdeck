@@ -10,6 +10,9 @@ test('Eco Fighters resolves from a directory containing malformed percent escape
 test('Virtual Boy resolves to the Nintendo Virtual Boy artwork folder',()=>{
  assert.deepEqual(libretroSystemsFor({title:'Virtual Boy game',system:'VirtualBoy',category:'Consoles',id:'vb'} as any)?.directories,['Nintendo - Virtual Boy']);
 });
+test('ZX Spectrum resolves to the Sinclair ZX Spectrum artwork folder',()=>{
+ assert.deepEqual(libretroSystemsFor({title:'Manic Miner',system:'ZX Spectrum',remoteSystemId:'spectrum',category:'Computers',id:'spectrum'} as any)?.directories,['Sinclair - ZX Spectrum']);
+});
 test('punctuation in A.B. Cop is not treated as a file extension',()=>{
  assert.equal(matchLibretroFilename({title:'A.B. Cop',id:'ab'} as any,['A.B. Cop (FD1094 317-0169b).png']),'A.B. Cop (FD1094 317-0169b).png');
 });
