@@ -51,7 +51,7 @@ function Tapdeck() {
  const [category,setCategory]=useState<Category>('Arcade');const [query,setQuery]=useState('');
  const [selectedSystem,setSelectedSystem]=useState<string|null>(null);
  const [selectedGenre,setSelectedGenre]=useState<string|null>(null);
- const [libraryRecords,setLibraryRecords]=useState<Game[]>([]);
+ const [libraryRecords,setLibraryRecords]=useState<Game[]>([]);const [libraryHydrated,setLibraryHydrated]=useState(false);
  const libraryGames=useMemo(()=>omitCollectionArtwork(libraryRecords),[libraryRecords]);
  const [misterUrl,setMiSTerUrl]=useState('');const [connected,setConnected]=useState(false);const [connecting,setConnecting]=useState(false);const [readingGames,setReadingGames]=useState(0);const [cachingArtwork,setCachingArtwork]=useState(false);const [artworkProgress,setArtworkProgress]=useState({done:0,total:0});const [artworkCacheStats,setArtworkCacheStats]=useState({count:0,bytes:0});const [artworkCacheBySystem,setArtworkCacheBySystem]=useState<{system:string;cached:number;total:number}[]>([]);
  const [shouldAutoConnect,setShouldAutoConnect]=useState(false);const autoConnectAttempts=useRef(0);const promptedForConnection=useRef(false);const [pickerCategory,setPickerCategory]=useState<'Arcade'|'Consoles'|'Computers'>('Arcade');
@@ -77,7 +77,7 @@ function Tapdeck() {
   let active=true;
   // Hydrate the local library independently so the default Arcade list can paint
   // while preferences and the saved-IP reconnect continue in parallel.
-  void loadCachedMiSTerLibrary().then(cachedLibrary=>{if(!active)return;const normalized=cachedLibrary.map(game=>({...game,genre:displayGenre(game.genre)}));setLibraryRecords(normalized);void getCachedArtworkBySystem(normalized,'').then(setArtworkCacheBySystem).catch(()=>{});}).catch(()=>{});
+  void loadCachedMiSTerLibrary().then(cachedLibrary=>{if(!active)return;const normalized=cachedLibrary.map(game=>({...game,genre:displayGenre(game.genre)}));setLibraryRecords(normalized);setLibraryHydrated(true);void getCachedArtworkBySystem(normalized,'').then(setArtworkCacheBySystem).catch(()=>{});}).catch(()=>{if(active)setLibraryHydrated(true);});
  Promise.all([settleWithin(AsyncStorage.getItem(SAVED_KEY),null),settleWithin(AsyncStorage.getItem(PLAYLISTS_KEY),null),settleWithin(AsyncStorage.getItem(MISTER_URL_KEY),null),settleWithin(AsyncStorage.getItem(PLAY_HISTORY_KEY),null)]).then(([savedRaw,playlistsRaw,url,historyRaw])=>{if(active){const validIds=games.map(g=>g.id);setSaved(parseSaved(savedRaw,validIds));setPlaylists(parsePlaylists(playlistsRaw,validIds));setPlayHistory(parsePlayHistory(historyRaw,validIds));setMiSTerUrl(url??'');setShouldAutoConnect(!!url);if(url)void loadCachedMiSTerLibrary().then(records=>getCachedArtworkBySystem(records.map(game=>({...game,genre:displayGenre(game.genre)})),url)).then(setArtworkCacheBySystem).catch(()=>{});}}).catch(()=>{if(active)notify('Your saved binder could not be loaded.');}).finally(()=>{if(active)setReady(true);});
   void getCachedArtworkStats().then(setArtworkCacheStats).catch(()=>{});
   void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);
@@ -90,7 +90,7 @@ function Tapdeck() {
   if(Platform.OS==='web'){const handler=(e:KeyboardEvent)=>{if(e.key==='Escape')back();};document.addEventListener('keydown',handler);return()=>{subscription.remove();document.removeEventListener('keydown',handler);};}
   return()=>subscription.remove();
  },[selected,panel]);
- useEffect(()=>{if(!ready||!shouldAutoConnect||!misterUrl||connected||connecting)return;const timer=setTimeout(()=>{autoConnectAttempts.current+=1;void reconnectSavedMiSTer().then(success=>{if(success)setShouldAutoConnect(false);else{setConnected(false);if(autoConnectAttempts.current<2)setTimeout(()=>setShouldAutoConnect(true),1500);else setShouldAutoConnect(false);}});},0);return()=>clearTimeout(timer);},[ready,shouldAutoConnect,misterUrl,connected,connecting]);
+ useEffect(()=>{if(!ready||!libraryHydrated||!shouldAutoConnect||!misterUrl||connected||connecting)return;const timer=setTimeout(()=>{autoConnectAttempts.current+=1;void reconnectSavedMiSTer().then(success=>{if(success)setShouldAutoConnect(false);else{setConnected(false);if(autoConnectAttempts.current<2)setTimeout(()=>setShouldAutoConnect(true),1500);else setShouldAutoConnect(false);}});},0);return()=>clearTimeout(timer);},[ready,libraryHydrated,shouldAutoConnect,misterUrl,connected,connecting]);
  useEffect(()=>{if(ready&&!misterUrl&&!promptedForConnection.current){promptedForConnection.current=true;setPanel('device');}},[ready,misterUrl]);
  async function toggleSaved(game:Game){
   if(!ready||saving.current)return;saving.current=true;tap();
