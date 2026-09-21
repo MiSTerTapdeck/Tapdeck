@@ -18,11 +18,11 @@ function validGames(value:unknown):Game[]{
  return value.filter((game):game is Game=>!!game&&typeof game==='object'&&typeof game.id==='string'&&typeof game.title==='string'&&typeof game.system==='string'&&['Consoles','Computers','Arcade'].includes(game.category)&&typeof game.remotePath==='string');
 }
 export async function loadCachedMiSTerLibrary():Promise<Game[]>{
- if(Platform.OS!=='web'&&FileSystem.documentDirectory){try{const file=`${FileSystem.documentDirectory}${LIBRARY_FILE}`;if((await FileSystem.getInfoAsync(file)).exists)return parseGames(await FileSystem.readAsStringAsync(file));}catch{}}
+ if(Platform.OS!=='web'&&FileSystem.documentDirectory){try{const file=`${FileSystem.documentDirectory}${LIBRARY_FILE}`;if((await FileSystem.getInfoAsync(file)).exists){const records=parseGames(await FileSystem.readAsStringAsync(file));if(records.length)return records;}}catch{}}
  return parseGames(await AsyncStorage.getItem(LEGACY_KEY)??'[]');
 }
 export async function saveCachedMiSTerLibrary(games:Game[]):Promise<void>{
  const value=JSON.stringify(games.map(({image,scene,...game})=>game));
- if(Platform.OS!=='web'&&FileSystem.documentDirectory){await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}${LIBRARY_FILE}`,value);return;}
  await AsyncStorage.setItem(LEGACY_KEY,value);
+ if(Platform.OS!=='web'&&FileSystem.documentDirectory)await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}${LIBRARY_FILE}`,value);
 }
