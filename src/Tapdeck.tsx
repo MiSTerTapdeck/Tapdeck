@@ -1,5 +1,5 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
-import {AccessibilityInfo,ActivityIndicator,Animated,BackHandler,FlatList,Image,Keyboard,KeyboardAvoidingView,Platform,Pressable,ScrollView,Text,TextInput,useWindowDimensions,View,type ViewToken} from 'react-native';
+import {AccessibilityInfo,ActivityIndicator,Animated,BackHandler,FlatList,Image,Keyboard,KeyboardAvoidingView,Platform,Pressable,ScrollView,Text,TextInput,useWindowDimensions,View,type ImageSourcePropType,type ViewToken} from 'react-native';
 import {SafeAreaProvider,useSafeAreaInsets} from 'react-native-safe-area-context';
 import {StatusBar} from 'expo-status-bar';
 import {useFonts} from 'expo-font';
@@ -11,7 +11,7 @@ import {filterGames,parseSaved,searchGamesByTitle,type SortOrder} from './domain
 import {primaryGenre} from './domain/genre';
 import {parsePlaylists,reorderIds,type Playlist} from './domain/playlists';
 import {discoverPlatform,recommendGames,type DiscoverPlatform} from './domain/discover';
-import {batchDownloadLibretro,clearLibretroArtworkCache,getLibretroArtworkStats,readLibretroSnap,readLibretroThumbnail} from './domain/libretro';
+import {batchDownloadLibretro,clearLibretroArtworkCache,getLibretroArtworkStats,readCachedLibretroSnap,readLibretroSnap,readLibretroThumbnail} from './domain/libretro';
 import {checkMiSTer,displayGenre,normaliseMiSTerUrl,readMiSTerLibrary,readMiSTerMetadata,readMiSTerSystems,refreshMiSTerLibraryAndMetadata,type LibraryMaintenanceProgress,type MiSTerSystem} from './domain/mister';
 import {launchMiSTerRemoteGame,returnMiSTerToMenu} from './domain/misterRemote';
 import {loadCachedMiSTerLibrary,saveCachedMiSTerLibrary} from './domain/misterCache';
@@ -170,7 +170,7 @@ function open(game:Game){Keyboard.dismiss();tap();setCardDirection(null);setSele
  const baselineRecommendations=useMemo(()=>tab==='discover'?recommendGames(libraryGames,discoverySeeds,playedGameIds):[],[tab,libraryGames,discoverySeeds.join('|'),playedGameIds.join('|')]);
  const recommendations=discoverySeedId||discoveryLoading?discoveryRecommendations:baselineRecommendations;
  function discoverFromCard(seedId:string){setDiscoveryRecommendations([]);setDiscoveryLoading(true);setDiscoverySeedId(seedId);setSelected(null);setTab('discover');tap();setTimeout(()=>{const found=recommendGames(libraryGames,[seedId],playedGameIds);setDiscoveryRecommendations(found);setTimeout(()=>setDiscoveryLoading(false),700);},0);}
- function createDiscoveryPlaylist(){if(!discoverySeedId||!discoveryRecommendations.length)return;const seed=gameById.get(discoverySeedId);if(!seed)return;const playlist:Playlist={id:`playlist-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,title:`Games like ${seed.title}`,gameIds:discoveryRecommendations.map(item=>item.game.id),createdAt:Date.now(),playedAt:{}};void storePlaylists([...playlists,playlist]);notify(`“${playlist.title}” added to Playlists.`);}
+ function createDiscoveryPlaylist(){if(!discoverySeedId||!discoveryRecommendations.length)return;const seed=gameById.get(discoverySeedId);if(!seed)return;const playlist:Playlist={id:`playlist-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,title:`Games like ${seed.title}`,gameIds:discoveryRecommendations.map(item=>item.game.id),createdAt:Date.now(),playedAt:{},seedGameId:seed.id};void storePlaylists([...playlists,playlist]);notify(`“${playlist.title}” added to Playlists.`);}
  const cardGames=tab==='library'?results:tab==='playlists'?activePlaylistGames:recommendations.map(item=>item.game);
  const selectedIndex=selected?cardGames.findIndex(game=>game.id===selected.id):-1;
  function reset(){setQuery('');setCategory('Arcade');setSelectedSystem('Arcade');setSelectedGenre(null);setSavedOnly(false);}
@@ -213,10 +213,15 @@ function DevicePanel({url,connected,connecting,readingGames,artworkCacheStats,cl
 
 const spineCaseAsset=require('../assets/playlist-spine-case.png');
 const tapeVariants=[{paper:'#EDE4D1',accent:'#B26D55',format:'TYPE I · C-60'},{paper:'#E4E9DD',accent:'#687A61',format:'TYPE I · C-90'},{paper:'#E8E0E6',accent:'#7F6E85',format:'TYPE II · C-74'},{paper:'#EEE2CE',accent:'#A87B3D',format:'TYPE I · C-46'}];
+function PlaylistSnapBackdrop({game}:{game:Game}){
+ const [source,setSource]=useState<ImageSourcePropType>();
+ useEffect(()=>{let active=true;setSource(undefined);void(async()=>{const cached=await readCachedLibretroSnap(game).catch(()=>undefined);if(cached){if(active)setSource(cached);return;}const downloaded=await readLibretroSnap(game).catch(()=>undefined);if(active&&downloaded)setSource(downloaded);})();return()=>{active=false;};},[game.id,game.remoteMediaId,game.remoteFilePath,game.remotePath,game.system,game.title]);
+ return source?<><Image source={source} resizeMode="cover" style={s.spineSnap} accessibilityElementsHidden/><View pointerEvents="none" style={s.spineSnapWash}/></>:null;
+}
 function PlaylistTapeCard({playlist,games,index,onOpen}:{playlist:Playlist;games:Game[];index:number;onOpen:()=>void}){
- const variant=tapeVariants[index%tapeVariants.length];const isStandard=playlist.id.startsWith('standard-');
+ const variant=tapeVariants[index%tapeVariants.length];const isStandard=playlist.id.startsWith('standard-');const seedGame=playlist.seedGameId?games.find(game=>game.id===playlist.seedGameId):undefined;
  const created=new Date(playlist.createdAt);const day=created.getDate();const suffix=day%10===1&&day!==11?'st':day%10===2&&day!==12?'nd':day%10===3&&day!==13?'rd':'th';const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sept','Oct','Nov','Dec'];const date=isStandard?(playlist.id===STANDARD_FAVOURITES_ID?'YOUR SAVED GAMES':'YOUR RECENT SESSIONS'):`Recorded ${day}${suffix} ${months[created.getMonth()]} '${String(created.getFullYear()).slice(-2)}`;
- return <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`Open playlist ${playlist.title}`} style={s.playlistSpine}><Image source={spineCaseAsset} resizeMode="cover" style={s.spineCaseImage} accessibilityLabel="Reflective cassette case spine"/><View style={[s.spinePaper,{backgroundColor:variant.paper}]}><View style={[s.spineAccent,{backgroundColor:variant.accent}]}/><Text numberOfLines={1} style={s.spineTitle}>{playlist.title}</Text><View style={[s.spineRule,{backgroundColor:variant.accent}]}/><View style={s.spineDetails}><Text style={[s.spineFormat,{color:variant.accent}]}>{variant.format}</Text><Text style={s.spineCount}>{playlist.gameIds.length===1?'1 game':`${playlist.gameIds.length} games`}</Text><Text style={s.spineDate}>{date}</Text></View></View></Pressable>;
+ return <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`Open playlist ${playlist.title}`} style={s.playlistSpine}><Image source={spineCaseAsset} resizeMode="cover" style={s.spineCaseImage} accessibilityLabel="Reflective cassette case spine"/><View style={[s.spinePaper,{backgroundColor:variant.paper}]}>{seedGame&&<PlaylistSnapBackdrop game={seedGame}/>}<View style={[s.spineAccent,{backgroundColor:variant.accent}]}/><Text numberOfLines={1} style={s.spineTitle}>{playlist.title}</Text><View style={[s.spineRule,{backgroundColor:variant.accent}]}/><View style={s.spineDetails}><Text style={[s.spineFormat,{color:variant.accent}]}>{variant.format}</Text><Text style={s.spineCount}>{playlist.gameIds.length===1?'1 game':`${playlist.gameIds.length} games`}</Text><Text style={s.spineDate}>{date}</Text></View></View></Pressable>;
 }
 
 function parsePlayHistory(raw:string|null,validIds?:string[]):Record<string,number>{try{const data=JSON.parse(raw??'{}');if(!data||typeof data!=='object'||Array.isArray(data))return {};return Object.fromEntries(Object.entries(data).filter(([id,time])=>(!validIds||validIds.includes(id))&&typeof time==='number'&&Number.isFinite(time))) as Record<string,number>;}catch{return {};}}
