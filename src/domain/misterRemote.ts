@@ -1,5 +1,6 @@
 import type {Game} from '../data/library';
 export function normaliseMiSTerRemoteUrl(value:string){const raw=value.trim().replace(/\/+$/,'');if(!raw)throw new Error('Enter your MiSTer address.');const candidate=/^https?:\/\//i.test(raw)?raw:`http://${raw}`;const parsed=new URL(candidate);if(!parsed.hostname)throw new Error('Enter a valid MiSTer address.');return `http://${parsed.hostname}:8182/api`;}
+export async function returnMiSTerToMenu(value:string){const response=await fetch(`${normaliseMiSTerRemoteUrl(value)}/launch/menu`,{method:'POST'});if(!response.ok)throw new Error(`MiSTer Remote could not return to its menu (HTTP ${response.status}).`);}
 const computerLoaders=new Set(['c64','commodore64','spectrum','zxspectrum','sinclairzxspectrum']);
 const systemKey=(value?:string)=>value?.toLowerCase().replace(/[^a-z0-9]+/g,'')??'';
 export function launchRoutesFor(game:Pick<Game,'remoteSystemId'>){return computerLoaders.has(systemKey(game.remoteSystemId))?['/games/launch','/launch']:['/launch'];}
