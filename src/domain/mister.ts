@@ -30,6 +30,20 @@ function rpc<T>(base:string,method:string,params?:unknown,timeoutMs=9000):Promis
  });
 }
 const pause=(milliseconds:number)=>new Promise<void>(resolve=>setTimeout(resolve,milliseconds));
+const maintenancePollIntervalMs=1000;
+
+async function retryDuringReconnect<T>(operation:()=>Promise<T>,onRetry?:()=>void):Promise<T>{
+ let failure:unknown;
+ for(let attempt=0;attempt<5;attempt+=1){
+  try{return await operation();}catch(error){
+   failure=error;
+   if(attempt===4)break;
+   onRetry?.();
+   await pause(800*(attempt+1));
+  }
+ }
+ throw failure;
+}
 
 export async function readMiSTerSystems(url:string):Promise<MiSTerSystem[]>{
  const result=await rpc<MiSTerSystem[]|{systems?:MiSTerSystem[]}>(url,'systems',{all:true});
@@ -51,7 +65,7 @@ function idFor(path:string){return `mister-${path.toLowerCase().replace(/[^a-z0-
 export function displayGenre(value?:string){const raw=(value??'').trim();if(!raw)return 'Not listed';const special:Record<string,string>={'shootem-up-verticalshootem-up':"Shoot'em Up / Vertical/Shoot'em Up",'shootem-up-horizontalshootem-up':"Shoot'em Up / Horizontal/Shoot'em Up"};return special[raw.toLowerCase()]??raw.split('/').map(part=>part.split('-').map(word=>word?word[0].toUpperCase()+word.slice(1):word).join(' ')).join('/');}
 export async function readMiSTerLibrary(url:string,onProgress?:(found:number)=>void):Promise<Game[]>{
  const found:RemoteGame[]=[];let cursor:string|undefined;
- do{const page=await rpc<SearchResult>(url,'media.search',{query:'',maxResults:1000,...(cursor?{cursor}:{})});found.push(...(page.results??[]));onProgress?.(found.length);cursor=page.pagination?.hasNextPage?page.pagination.nextCursor:undefined;}while(cursor);
+ do{const page=await retryDuringReconnect(()=>rpc<SearchResult>(url,'media.search',{query:'',maxResults:1000,...(cursor?{cursor}:{})}));found.push(...(page.results??[]));onProgress?.(found.length);cursor=page.pagination?.hasNextPage?page.pagination.nextCursor:undefined;}while(cursor);
  const unique=new Map<string,{game:RemoteGame;record:Game}>();
  found.forEach(game=>{if(game.isMissing===true||game.missing===true||game.isMissing===1||game.missing===1||!game.path||!game.name||!game.zapScript)return;const tags=game.tags??[];const tag=(...types:string[])=>tags.find(item=>types.includes(item.type.toLowerCase()))?.tag;const record:Game={id:game.mediaId!==undefined?`mister-media-${game.mediaId}`:idFor(game.path),title:game.name,system:game.system?.name||'MiSTer',category:categoryFor(game.system?.category),year:Number(tag('year','releasedate'))||null,developer:tag('developer','publisher','manufacturer')??'Not listed',genre:displayGenre(tag('genre')),players:tag('players')??'Not listed',description:`Found on your MiSTer in ${game.system?.name||'your collection'}.`,remotePath:game.zapScript,remoteFilePath:game.path,remoteSystemId:game.system?.id,remoteMediaId:game.mediaId,remoteHasArtwork:game.hasCover};const key=`${game.system?.id??record.system}::${game.name.trim().toLocaleLowerCase()}`;const current=unique.get(key);const better=!current||(!current.game.hasCover&&!!game.hasCover)||(!current.game.path.includes('/media/usb')&&game.path.includes('/media/usb'));if(better)unique.set(key,{game,record});});
  const recordIds=new Set<string>();
@@ -70,13 +84,13 @@ async function waitForIndexing(url:string,onProgress:(progress:LibraryMaintenanc
  await pause(350);
  let sawIndexing=false;
  for(let attempt=0;attempt<720;attempt+=1){
-  const status=await rpc<MediaStatus>(url,'media');
+  const status=await retryDuringReconnect(()=>rpc<MediaStatus>(url,'media'),()=>onProgress({stage:'indexing',message:'Waiting for Zaparoo to reconnect…'}));
   const database=status.database;
   if(database?.indexing){
    sawIndexing=true;
    onProgress({stage:'indexing',message:database.currentStepDisplay??'Updating the MiSTer media database…',current:database.currentStep,total:database.totalSteps});
   }else if(sawIndexing||attempt>=2)return;
-  await pause(500);
+  await pause(maintenancePollIntervalMs);
  }
  throw new Error('Updating the MiSTer media database took too long.');
 }
@@ -84,15 +98,15 @@ async function waitForIndexing(url:string,onProgress:(progress:LibraryMaintenanc
 async function waitForMetadata(url:string,onProgress:(progress:LibraryMaintenanceProgress)=>void){
  await pause(350);
  let sawWork=false;
- for(let attempt=0;attempt<1440;attempt+=1){
-  const status=await rpc<ScraperStatus>(url,'media.scrape.status',{scraperId:'mister-docs'});
+ for(let attempt=0;attempt<720;attempt+=1){
+  const status=await retryDuringReconnect(()=>rpc<ScraperStatus>(url,'media.scrape.status',{scraperId:'mister-docs'}),()=>onProgress({stage:'metadata',message:'Waiting for Zaparoo to reconnect…'}));
   if(status.state==='failed')throw new Error(status.error??'MiSTer Docs metadata scraping failed.');
   if(status.state==='cancelled')throw new Error('MiSTer Docs metadata scraping was cancelled.');
   if(status.scraping||status.state==='running'){
    sawWork=true;
    onProgress({stage:'metadata',message:status.currentStepDisplay??(status.currentSystem?`Scraping ${status.currentSystem}…`:'Refreshing MiSTer Docs metadata…'),current:status.processed,total:status.total});
   }else if(sawWork||status.done||status.state==='completed')return;
-  await pause(500);
+  await pause(maintenancePollIntervalMs);
  }
  throw new Error('Refreshing MiSTer Docs metadata took too long.');
 }
