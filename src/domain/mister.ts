@@ -106,7 +106,7 @@ export async function refreshMiSTerLibraryAndMetadata(url:string,systemIds:strin
  const availableScrapers=Array.isArray(scrapers)?scrapers:scrapers.scrapers??[];
  if(!availableScrapers.some(scraper=>scraper.id==='mister-docs'))throw new Error('MiSTer Docs metadata is not installed in Zaparoo.');
  onProgress({stage:'metadata',message:'Starting the MiSTer Docs metadata refresh…'});
- await rpc(url,'media.scrape',{scraperId:'mister-docs',force:true,...(systems?{systems}:{})},15000);
+ await rpc(url,'media.scrape',{scraperId:'mister-docs',...(systems?{systems}:{})},15000);
  await waitForMetadata(url,onProgress);
  onProgress({stage:'reading',message:'Saving the refreshed library in Tapdeck…'});
  return readMiSTerLibrary(url,found=>onProgress({stage:'reading',message:'Saving the refreshed library in Tapdeck…',current:found}));
