@@ -32,14 +32,14 @@ function rpc<T>(base:string,method:string,params?:unknown,timeoutMs=9000):Promis
 const pause=(milliseconds:number)=>new Promise<void>(resolve=>setTimeout(resolve,milliseconds));
 const maintenancePollIntervalMs=1000;
 
-async function retryDuringReconnect<T>(operation:()=>Promise<T>,onRetry?:()=>void):Promise<T>{
+async function retryDuringReconnect<T>(operation:()=>Promise<T>,onRetry?:()=>void,maxAttempts=5,retryDelayMs=800):Promise<T>{
  let failure:unknown;
- for(let attempt=0;attempt<5;attempt+=1){
+ for(let attempt=0;attempt<maxAttempts;attempt+=1){
   try{return await operation();}catch(error){
    failure=error;
-   if(attempt===4)break;
+   if(attempt===maxAttempts-1)break;
    onRetry?.();
-   await pause(800*(attempt+1));
+   await pause(retryDelayMs);
   }
  }
  throw failure;
@@ -84,7 +84,7 @@ async function waitForIndexing(url:string,onProgress:(progress:LibraryMaintenanc
  await pause(350);
  let sawIndexing=false;
  for(let attempt=0;attempt<720;attempt+=1){
-  const status=await retryDuringReconnect(()=>rpc<MediaStatus>(url,'media'),()=>onProgress({stage:'indexing',message:'Waiting for Zaparoo to reconnect…'}));
+  const status=await retryDuringReconnect(()=>rpc<MediaStatus>(url,'media',undefined,4000),()=>onProgress({stage:'indexing',message:'Waiting for Zaparoo to reconnect…'}),20,1000);
   const database=status.database;
   if(database?.indexing){
    sawIndexing=true;
@@ -99,7 +99,7 @@ async function waitForMetadata(url:string,onProgress:(progress:LibraryMaintenanc
  await pause(350);
  let sawWork=false;
  for(let attempt=0;attempt<720;attempt+=1){
-  const status=await retryDuringReconnect(()=>rpc<ScraperStatus>(url,'media.scrape.status',{scraperId:'mister-docs'}),()=>onProgress({stage:'metadata',message:'Waiting for Zaparoo to reconnect…'}));
+  const status=await retryDuringReconnect(()=>rpc<ScraperStatus>(url,'media.scrape.status',{scraperId:'mister-docs'},4000),()=>onProgress({stage:'metadata',message:'Waiting for Zaparoo to reconnect…'}),20,1000);
   if(status.state==='failed')throw new Error(status.error??'MiSTer Docs metadata scraping failed.');
   if(status.state==='cancelled')throw new Error('MiSTer Docs metadata scraping was cancelled.');
   if(status.scraping||status.state==='running'){
