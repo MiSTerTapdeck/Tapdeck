@@ -36,9 +36,6 @@
         "projectId": "9db8a196-fd04-41b9-81d9-4a2498823b9b"
       }
     },
-    "owner": "azzazzos-team",
-    "plugins": [
-      "expo-sqlite"
-    ]
+    "owner": "azzazzos-team"
   }
 }
