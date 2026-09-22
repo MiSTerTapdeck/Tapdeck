@@ -16,6 +16,10 @@ const names = {
   JalecoMegaSystem1: 'Jaleco Mega System 1', JalecoMegaSystem32: 'Jaleco Mega System 32',
   TaitoF2: 'Taito F2', TaitoF3: 'Taito F3', TaitoB: 'Taito B System', TaitoAir: 'Taito Air System',
   CapcomZN1: 'Capcom ZN-1', CapcomZN2: 'Capcom ZN-2',
+  jtcps1: 'Capcom CPS1', jtcps15: 'Capcom CPS1.5', jtcps2: 'Capcom CPS2', jtcps3: 'Capcom CPS3',
+  jts16: 'Sega System 16', jts16b: 'Sega System 16B', jts18: 'Sega System 18', segasys1: 'Sega System 1',
+  IGSPGM: 'IGS PGM', SYSTEM11: 'Namco System 11', SYSTEM12: 'Namco System 12', XNSYSTEM22: 'Namco System 22', XNSUPER22: 'Namco Super System 22',
+  JalecoMS32: 'Jaleco Mega System 32', megasys1_a: 'Jaleco Mega System 1',
 };
 const displayName = core => names[core] ?? core.replace(/([a-z])([A-Z0-9])/g, '$1 $2').replace(/(\d)([A-Za-z])/g, '$1 $2');
 async function files(dir) {

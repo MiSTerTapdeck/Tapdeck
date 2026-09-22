@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import {Platform} from 'react-native';
 import type {Game} from '../data/library';
-import {arcadeCoreByMraName,arcadeCoreByRomSet} from '../data/arcadeCoreMap';
+import {groupGenericArcadeGames} from './arcadeCores';
 
 const LEGACY_KEY='tapdeck.mister-library.v1';
 const LIBRARY_FILE='tapdeck-library.json';
@@ -15,12 +15,8 @@ async function removeLegacyStorage():Promise<void>{
 }
 
 function parseGames(raw:string):Game[]{try{return validGames(JSON.parse(raw));}catch{return [];}}
-function arcadeCoreFor(path?:string){
- const name=path?.split(/[\\/]/).pop()?.replace(/\.(?:mra|zip)$/i,'').trim().toLocaleLowerCase();
- return name?arcadeCoreByMraName[name]??arcadeCoreByRomSet[name]:undefined;
-}
 function applyArcadeCoreMap(games:Game[]){
- return games.map(game=>game.category==='Arcade'&&game.system==='Arcade'?{...game,system:arcadeCoreFor(game.remoteFilePath)??game.system}:game);
+ return groupGenericArcadeGames(games);
 }
 function validGames(value:unknown):Game[]{
  if(!Array.isArray(value))return [];

@@ -1,5 +1,5 @@
 import type {Category,Game} from '../data/library';
-import {arcadeCoreByMraName,arcadeCoreByRomSet} from '../data/arcadeCoreMap';
+import {groupGenericArcadeGames} from './arcadeCores';
 
 type RemoteSystem={id:string;name:string;category?:string};
 type RemoteGame={mediaId?:number;name:string;path:string;zapScript:string;hasCover?:boolean;isMissing?:boolean|number;missing?:boolean|number;tags?:{type:string;tag:string}[];system:RemoteSystem};
@@ -63,19 +63,14 @@ function categoryFor(category?:string):Exclude<Category,'All'>{
  return 'Consoles';
 }
 function idFor(path:string){return `mister-${path.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')}`;}
-function arcadeCoreFor(path:string){
- const name=path.split(/[\\/]/).pop()?.replace(/\.(?:mra|zip)$/i,'').trim().toLocaleLowerCase();
- if(!name)return undefined;
- return arcadeCoreByMraName[name]??arcadeCoreByRomSet[name];
-}
 export function displayGenre(value?:string){const raw=(value??'').trim();if(!raw)return 'Not listed';const special:Record<string,string>={'shootem-up-verticalshootem-up':"Shoot'em Up / Vertical/Shoot'em Up",'shootem-up-horizontalshootem-up':"Shoot'em Up / Horizontal/Shoot'em Up"};return special[raw.toLowerCase()]??raw.split('/').map(part=>part.split('-').map(word=>word?word[0].toUpperCase()+word.slice(1):word).join(' ')).join('/');}
 export async function readMiSTerLibrary(url:string,onProgress?:(found:number)=>void):Promise<Game[]>{
  const found:RemoteGame[]=[];let cursor:string|undefined;
  do{const page=await retryDuringReconnect(()=>rpc<SearchResult>(url,'media.search',{query:'',maxResults:1000,...(cursor?{cursor}:{})}));found.push(...(page.results??[]));onProgress?.(found.length);cursor=page.pagination?.hasNextPage?page.pagination.nextCursor:undefined;}while(cursor);
  const unique=new Map<string,{game:RemoteGame;record:Game}>();
- found.forEach(game=>{if(game.isMissing===true||game.missing===true||game.isMissing===1||game.missing===1||!game.path||!game.name||!game.zapScript)return;const tags=game.tags??[];const tag=(...types:string[])=>tags.find(item=>types.includes(item.type.toLowerCase()))?.tag;const category=categoryFor(game.system?.category);const system=category==='Arcade'&&(game.system?.id??'').toLocaleLowerCase()==='arcade'?arcadeCoreFor(game.path)??game.system.name:game.system?.name||'MiSTer';const record:Game={id:game.mediaId!==undefined?`mister-media-${game.mediaId}`:idFor(game.path),title:game.name,system,category,year:Number(tag('year','releasedate'))||null,developer:tag('developer','publisher','manufacturer')??'Not listed',genre:displayGenre(tag('genre')),players:tag('players')??'Not listed',description:`Found on your MiSTer in ${system}.`,remotePath:game.zapScript,remoteFilePath:game.path,remoteSystemId:game.system?.id,remoteMediaId:game.mediaId,remoteHasArtwork:game.hasCover};const key=`${game.system?.id??record.system}::${game.name.trim().toLocaleLowerCase()}`;const current=unique.get(key);const better=!current||(!current.game.hasCover&&!!game.hasCover)||(!current.game.path.includes('/media/usb')&&game.path.includes('/media/usb'));if(better)unique.set(key,{game,record});});
+ found.forEach(game=>{if(game.isMissing===true||game.missing===true||game.isMissing===1||game.missing===1||!game.path||!game.name||!game.zapScript)return;const tags=game.tags??[];const tag=(...types:string[])=>tags.find(item=>types.includes(item.type.toLowerCase()))?.tag;const category=categoryFor(game.system?.category);const system=game.system?.name||'MiSTer';const record:Game={id:game.mediaId!==undefined?`mister-media-${game.mediaId}`:idFor(game.path),title:game.name,system,category,year:Number(tag('year','releasedate'))||null,developer:tag('developer','publisher','manufacturer')??'Not listed',genre:displayGenre(tag('genre')),players:tag('players')??'Not listed',description:`Found on your MiSTer in ${system}.`,remotePath:game.zapScript,remoteFilePath:game.path,remoteSystemId:game.system?.id,remoteMediaId:game.mediaId,remoteHasArtwork:game.hasCover};const key=`${game.system?.id??record.system}::${game.name.trim().toLocaleLowerCase()}`;const current=unique.get(key);const better=!current||(!current.game.hasCover&&!!game.hasCover)||(!current.game.path.includes('/media/usb')&&game.path.includes('/media/usb'));if(better)unique.set(key,{game,record});});
  const recordIds=new Set<string>();
- return [...unique.values()].map(item=>item.record).filter(record=>!recordIds.has(record.id)&&!!recordIds.add(record.id)).sort((a,b)=>a.title.localeCompare(b.title));
+ return groupGenericArcadeGames([...unique.values()].map(item=>item.record).filter(record=>!recordIds.has(record.id)&&!!recordIds.add(record.id))).sort((a,b)=>a.title.localeCompare(b.title));
 }
 export async function readMiSTerMetadata(url:string,mediaId:number):Promise<Partial<Game>>{
  const result=await rpc<{media?:{title?:{tags?:{type:string;tag:string}[];properties?:Record<string,{text?:string}>};properties?:Record<string,{text?:string}>}}>(url,'media.meta',{mediaId});
