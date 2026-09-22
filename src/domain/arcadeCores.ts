@@ -21,9 +21,20 @@ function groupForMra(path?:string){
 }
 
 export function groupGenericArcadeGames(games:Game[]):Game[]{
- return games.map(game=>{
+ const grouped=games.map(game=>{
   if(game.category!=='Arcade')return game;
   const group=groupForSystem(game.remoteSystemId)??groupForMra(game.remoteFilePath);
   return {...game,system:group??'Arcade'};
  });
+ const arcade=new Map<string,Game>();
+ const retained:Game[]=[];
+ for(const game of grouped){
+  if(game.category!=='Arcade'){retained.push(game);continue;}
+  const key=game.title.toLocaleLowerCase().replace(/\([^)]*\)|[^a-z0-9]+/g,'');
+  const current=arcade.get(key);
+  const preferCurrent=current?.remoteSystemId?.toLocaleLowerCase()!=='arcade';
+  const preferNext=game.remoteSystemId?.toLocaleLowerCase()!=='arcade';
+  if(!current||(!preferCurrent&&preferNext))arcade.set(key,game);
+ }
+ return [...retained,...arcade.values()];
 }
