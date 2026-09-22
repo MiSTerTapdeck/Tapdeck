@@ -77,12 +77,31 @@ function Tapdeck() {
   // Hydrate the local library independently so the default Arcade list can paint
   // while preferences and the saved-IP reconnect continue in parallel.
   void loadCachedMiSTerLibrary().then(cachedLibrary=>{if(!active)return;setLibraryRecords(cachedLibrary.map(game=>({...game,genre:displayGenre(game.genre)})));setLibraryHydrated(true);}).catch(()=>{if(active)setLibraryHydrated(true);});
- Promise.all([settleWithin(AsyncStorage.getItem(SAVED_KEY),null),settleWithin(AsyncStorage.getItem(PLAYLISTS_KEY),null),settleWithin(AsyncStorage.getItem(MISTER_URL_KEY),null),settleWithin(AsyncStorage.getItem(PLAY_HISTORY_KEY),null)]).then(([savedRaw,playlistsRaw,url,historyRaw])=>{if(active){const validIds=games.map(g=>g.id);setSaved(parseSaved(savedRaw,validIds));setPlaylists(parsePlaylists(playlistsRaw,validIds));setPlayHistory(parsePlayHistory(historyRaw,validIds));setMiSTerUrl(url??'');setShouldAutoConnect(!!url);}}).catch(()=>{if(active)notify('Your saved binder could not be loaded.');}).finally(()=>{if(active)setReady(true);});
+ Promise.all([settleWithin(AsyncStorage.getItem(SAVED_KEY),null),settleWithin(AsyncStorage.getItem(PLAYLISTS_KEY),null),settleWithin(AsyncStorage.getItem(MISTER_URL_KEY),null),settleWithin(AsyncStorage.getItem(PLAY_HISTORY_KEY),null)]).then(([savedRaw,playlistsRaw,url,historyRaw])=>{if(active){setSaved(parseSaved(savedRaw));setPlaylists(parsePlaylists(playlistsRaw));setPlayHistory(parsePlayHistory(historyRaw));setMiSTerUrl(url??'');setShouldAutoConnect(!!url);}}).catch(()=>{if(active)notify('Your saved binder could not be loaded.');}).finally(()=>{if(active)setReady(true);});
   void getLibretroArtworkStats().then(setArtworkCacheStats).catch(()=>{});
   void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);
   const sub=AccessibilityInfo.addEventListener('reduceMotionChanged',setReducedMotion);
   return()=>{active=false;sub.remove();if(noticeTimer.current)clearTimeout(noticeTimer.current);};
  },[]);
+ useEffect(()=>{
+  if(!libraryHydrated||!ready)return;
+  const validIds=new Set(libraryGames.map(game=>game.id));
+  setSaved(current=>{
+   const next=current.filter(id=>validIds.has(id));
+   if(next.length!==current.length)void AsyncStorage.setItem(SAVED_KEY,JSON.stringify(next)).catch(()=>{});
+   return next.length===current.length?current:next;
+  });
+  setPlaylists(current=>{
+   const next=current.map(playlist=>({...playlist,gameIds:playlist.gameIds.filter(id=>validIds.has(id))}));
+   if(next.some((playlist,index)=>playlist.gameIds.length!==current[index].gameIds.length))void AsyncStorage.setItem(PLAYLISTS_KEY,JSON.stringify(next)).catch(()=>{});
+   return next.some((playlist,index)=>playlist.gameIds.length!==current[index].gameIds.length)?next:current;
+  });
+  setPlayHistory(current=>{
+   const next=Object.fromEntries(Object.entries(current).filter(([id])=>validIds.has(id)));
+   if(Object.keys(next).length!==Object.keys(current).length)void AsyncStorage.setItem(PLAY_HISTORY_KEY,JSON.stringify(next)).catch(()=>{});
+   return Object.keys(next).length===Object.keys(current).length?current:next;
+  });
+ },[libraryHydrated,libraryGames,ready]);
  useEffect(()=>{
   const back=()=>{if(panel){setPanel(null);return true;}if(selected){setSelected(null);return true;}return false;};
   const subscription=BackHandler.addEventListener('hardwareBackPress',back);
@@ -187,7 +206,7 @@ function PlaylistTapeCard({playlist,games,index,onOpen}:{playlist:Playlist;games
  return <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`Open playlist ${playlist.title}`} style={s.playlistSpine}><Image source={spineCaseAsset} resizeMode="cover" style={s.spineCaseImage} accessibilityLabel="Reflective cassette case spine"/><View style={[s.spinePaper,{backgroundColor:variant.paper}]}><View style={[s.spineAccent,{backgroundColor:variant.accent}]}/><Text numberOfLines={1} style={s.spineTitle}>{playlist.title}</Text><View style={[s.spineRule,{backgroundColor:variant.accent}]}/><View style={s.spineDetails}><Text style={[s.spineFormat,{color:variant.accent}]}>{variant.format}</Text><Text style={s.spineCount}>{playlist.gameIds.length===1?'1 game':`${playlist.gameIds.length} games`}</Text><Text style={s.spineDate}>{date}</Text></View></View></Pressable>;
 }
 
-function parsePlayHistory(raw:string|null,validIds:string[]):Record<string,number>{try{const data=JSON.parse(raw??'{}');if(!data||typeof data!=='object'||Array.isArray(data))return {};return Object.fromEntries(Object.entries(data).filter(([id,time])=>validIds.includes(id)&&typeof time==='number'&&Number.isFinite(time))) as Record<string,number>;}catch{return {};}}
+function parsePlayHistory(raw:string|null,validIds?:string[]):Record<string,number>{try{const data=JSON.parse(raw??'{}');if(!data||typeof data!=='object'||Array.isArray(data))return {};return Object.fromEntries(Object.entries(data).filter(([id,time])=>(!validIds||validIds.includes(id))&&typeof time==='number'&&Number.isFinite(time))) as Record<string,number>;}catch{return {};}}
 function playedLabel(time:number){const mins=Math.max(0,Math.floor((Date.now()-time)/60000));if(mins<1)return 'Played just now';if(mins<60)return `Played ${mins}m ago`;if(mins<1440)return `Played ${Math.floor(mins/60)}h ago`;return `Played ${new Date(time).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}`;}
 function PlaylistView({games,savedIds,playlists,active,onCreate,onOpen,onBack,onAdd,onEdit,onDelete,onOpenGame,onMove,onRemove,artworkUrl,fetchRemote}:{games:Game[];savedIds:string[];playlists:Playlist[];active:Playlist|null;onCreate:()=>void;onOpen:(id:string)=>void;onBack:()=>void;onAdd:()=>void;onEdit:()=>void;onDelete:()=>void;onOpenGame:(game:Game)=>void;onMove:(from:number,to:number)=>void;onRemove:(gameId:string)=>void;artworkUrl?:string;fetchRemote?:boolean}){
  const [playlistView,setPlaylistView]=useState<'list'|'cards'>('list');

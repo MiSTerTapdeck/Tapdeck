@@ -24,6 +24,6 @@ export function searchGamesByTitle(games:Game[],query:string,sort:SortOrder='col
 }
 // Release age controls paper wear. Play history never changes a card's condition.
 export function isVintage(year:number|null,now=new Date().getFullYear()) {return year!==null && now-year>=20;}
-export function parseSaved(raw:string|null,validIds:string[]):string[] {
-  try {const data=JSON.parse(raw??'[]');return Array.isArray(data)?[...new Set(data.filter((id):id is string=>typeof id==='string'&&validIds.includes(id)))]:[];}catch{return [];}
+export function parseSaved(raw:string|null,validIds?:string[]):string[] {
+  try {const data=JSON.parse(raw??'[]');return Array.isArray(data)?[...new Set(data.filter((id):id is string=>typeof id==='string'&&(!validIds||validIds.includes(id))))]:[];}catch{return [];}
 }

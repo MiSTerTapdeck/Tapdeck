@@ -2,7 +2,7 @@ export type Playlist={id:string;title:string;gameIds:string[];createdAt:number;p
 
 // Storage is treated as untrusted: a removed game or a malformed old entry should
 // never stop the binder from opening.
-export function parsePlaylists(raw:string|null,validIds:string[]):Playlist[]{
+export function parsePlaylists(raw:string|null,validIds?:string[]):Playlist[]{
  try{
   const data=JSON.parse(raw??'[]');
   if(!Array.isArray(data))return [];
@@ -13,7 +13,7 @@ export function parsePlaylists(raw:string|null,validIds:string[]):Playlist[]{
    if(typeof item.id!=='string'||typeof item.title!=='string'||seen.has(item.id))return [];
    const title=item.title.trim();if(!title)return [];
    seen.add(item.id);
-   const ids:string[]=Array.isArray(item.gameIds)?[...new Set(item.gameIds.filter((id:unknown):id is string=>typeof id==='string'&&validIds.includes(id)))]:[];
+   const ids:string[]=Array.isArray(item.gameIds)?[...new Set(item.gameIds.filter((id:unknown):id is string=>typeof id==='string'&&(!validIds||validIds.includes(id))))]:[];
    const playedAt:Record<string,number>={};if(item.playedAt&&typeof item.playedAt==='object')for(const [id,time] of Object.entries(item.playedAt)){if(ids.includes(id)&&typeof time==='number'&&Number.isFinite(time))playedAt[id]=time;}
    return [{id:item.id,title,gameIds:ids,createdAt:typeof item.createdAt==='number'?item.createdAt:0,...(Object.keys(playedAt).length?{playedAt}:{})}];
   });
