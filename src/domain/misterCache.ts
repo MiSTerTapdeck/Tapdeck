@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import {Platform} from 'react-native';
 import type {Game} from '../data/library';
+import {arcadeCoreByMraName,arcadeCoreByRomSet} from '../data/arcadeCoreMap';
 
 const LEGACY_KEY='tapdeck.mister-library.v1';
 const LIBRARY_FILE='tapdeck-library.json';
@@ -14,19 +15,26 @@ async function removeLegacyStorage():Promise<void>{
 }
 
 function parseGames(raw:string):Game[]{try{return validGames(JSON.parse(raw));}catch{return [];}}
+function arcadeCoreFor(path?:string){
+ const name=path?.split(/[\\/]/).pop()?.replace(/\.(?:mra|zip)$/i,'').trim().toLocaleLowerCase();
+ return name?arcadeCoreByMraName[name]??arcadeCoreByRomSet[name]:undefined;
+}
+function applyArcadeCoreMap(games:Game[]){
+ return games.map(game=>game.category==='Arcade'&&game.system==='Arcade'?{...game,system:arcadeCoreFor(game.remoteFilePath)??game.system}:game);
+}
 function validGames(value:unknown):Game[]{
  if(!Array.isArray(value))return [];
  return value.filter((game):game is Game=>!!game&&typeof game==='object'&&typeof game.id==='string'&&typeof game.title==='string'&&typeof game.system==='string'&&['Consoles','Computers','Arcade'].includes(game.category)&&typeof game.remotePath==='string');
 }
 export async function loadCachedMiSTerLibrary():Promise<Game[]>{
  if(Platform.OS!=='web'&&FileSystem.documentDirectory){
-  for(const name of [LIBRARY_FILE,LIBRARY_BACKUP_FILE]){try{const file=`${FileSystem.documentDirectory}${name}`;if((await FileSystem.getInfoAsync(file)).exists){const records=parseGames(await FileSystem.readAsStringAsync(file));if(records.length){await removeLegacyStorage();return records;}}}catch{}}
+  for(const name of [LIBRARY_FILE,LIBRARY_BACKUP_FILE]){try{const file=`${FileSystem.documentDirectory}${name}`;if((await FileSystem.getInfoAsync(file)).exists){const records=parseGames(await FileSystem.readAsStringAsync(file));if(records.length){const migrated=applyArcadeCoreMap(records);if(migrated.some((game,index)=>game.system!==records[index].system))await saveCachedMiSTerLibrary(migrated);await removeLegacyStorage();return migrated;}}}catch{}}
   const legacy=parseGames(await AsyncStorage.getItem(LEGACY_KEY).catch(()=>null)??'[]');
-  if(legacy.length){await saveCachedMiSTerLibrary(legacy);return legacy;}
+  if(legacy.length){const migrated=applyArcadeCoreMap(legacy);await saveCachedMiSTerLibrary(migrated);return migrated;}
   await removeLegacyStorage();
   return [];
  }
- return parseGames(await AsyncStorage.getItem(LEGACY_KEY)??'[]');
+ return applyArcadeCoreMap(parseGames(await AsyncStorage.getItem(LEGACY_KEY)??'[]'));
 }
 export async function saveCachedMiSTerLibrary(games:Game[]):Promise<void>{
  const value=JSON.stringify(games.map(({image,scene,...game})=>game));
