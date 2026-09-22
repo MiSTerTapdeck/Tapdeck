@@ -6,7 +6,7 @@ import {fonts,palette as c} from '../theme';
 import {Paper} from './Paper';
 import {Icon} from './Icon';
 import {ArtworkImage} from './ArtworkImage';
-function GameCardImpl({game,index,saved,onPress,reducedMotion,artworkUrl,fetchRemote}:{game:Game;index:number;saved:boolean;onPress:()=>void;reducedMotion:boolean;artworkUrl?:string;fetchRemote?:boolean}) {
+function GameCardImpl({game,index,saved,onPress,reducedMotion,artworkUrl,fetchRemote,allowDownload=true}:{game:Game;index:number;saved:boolean;onPress:()=>void;reducedMotion:boolean;artworkUrl?:string;fetchRemote?:boolean;allowDownload?:boolean}) {
  const scale=useRef(new Animated.Value(1)).current;
  const vintage=isVintage(game.year);
  const animate=(toValue:number)=>{if(!reducedMotion)Animated.spring(scale,{toValue,useNativeDriver:Platform.OS!=='web',speed:35,bounciness:0}).start();};
@@ -14,14 +14,14 @@ function GameCardImpl({game,index,saved,onPress,reducedMotion,artworkUrl,fetchRe
   <Animated.View style={[s.card,{transform:[{scale}],backgroundColor:vintage?c.card:'#F9F5EA'}]}>
   <Paper opacity={vintage?.8:.14}/>
   <View style={s.top}><Text style={s.serial}>{String(index+1).padStart(3,'0')}</Text><Text style={[s.system,{color:game.system==='Mega Drive'?'#375970':game.system==='Arcade'?'#58623F':'#91402B'}]}>{game.system.toUpperCase()}</Text></View>
-  <View style={s.art}><ArtworkImage game={game} misterUrl={artworkUrl} allowDownload style={s.image}/></View>
+  <View style={s.art}><ArtworkImage game={game} misterUrl={artworkUrl} allowDownload={allowDownload} style={s.image}/></View>
   <View style={s.cardFoot}><Text style={s.cardGenre} numberOfLines={1}>{game.genre==='Not listed'?'COLLECTION':game.genre.toUpperCase()}</Text>{saved?<Icon name="bookmark" filled size={13} color={c.orange}/>:<Text style={s.year}>{game.year??'—'}</Text>}</View>
  </Animated.View>
  <Text style={s.title} numberOfLines={2}>{game.title}</Text>
  <Text style={s.subtitle}>{game.system} <Text style={{color:'#AA9C85'}}>·</Text> {game.year??'Year unknown'}{!vintage?'  ·  Recent release':''}</Text>
  </Pressable>;
 }
-export const GameCard=React.memo(GameCardImpl,(a,b)=>a.game.id===b.game.id&&a.game.image===b.game.image&&a.index===b.index&&a.saved===b.saved&&a.reducedMotion===b.reducedMotion&&a.artworkUrl===b.artworkUrl&&a.onPress===b.onPress);
+export const GameCard=React.memo(GameCardImpl,(a,b)=>a.game.id===b.game.id&&a.game.image===b.game.image&&a.index===b.index&&a.saved===b.saved&&a.reducedMotion===b.reducedMotion&&a.artworkUrl===b.artworkUrl&&a.allowDownload===b.allowDownload&&a.onPress===b.onPress);
 const s=StyleSheet.create({
  card:{borderRadius:9,padding:9,borderWidth:1,borderColor:'#CCB994',boxShadow:'0px 3px 5px rgba(64,43,15,0.16)',overflow:'hidden'},
  top:{height:23,flexDirection:'row',alignItems:'flex-start',justifyContent:'space-between',gap:4},
