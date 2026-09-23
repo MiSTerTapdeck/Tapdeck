@@ -73,6 +73,8 @@ function Tapdeck() {
  const list=useRef<FlatList<Game>>(null);
  function notify(message:string){setNotice(message);if(noticeTimer.current)clearTimeout(noticeTimer.current);noticeTimer.current=setTimeout(()=>setNotice(''),2600);}
  function showPanel(next:Exclude<typeof panel,null>){Keyboard.dismiss();setPanel(next);}
+ // Search belongs to the current Library visit. Leaving the tab restores the unsearched list on return.
+ useEffect(()=>{if(tab!=='library'&&query){setQuery('');Keyboard.dismiss();}},[tab]);
  useEffect(()=>{
  let active=true;
   // Hydrate the local library independently so the default Arcade list can paint
