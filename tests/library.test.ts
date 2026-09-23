@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {filterGames,genresForCategory,isVintage,parseSaved,searchGamesByTitle,systemsForCategory} from '../src/domain/library.ts';
-import {primaryGenre} from '../src/domain/genre.ts';
+import {discoverGenreKey,primaryGenre} from '../src/domain/genre.ts';
 import {parsePlaylists,reorderIds} from '../src/domain/playlists.ts';
 import {recommendGames} from '../src/domain/discover.ts';
 import type {Game} from '../src/data/library';
@@ -55,7 +55,9 @@ test('global game search matches titles only and ignores metadata matches',()=>{
 test('primary genres normalize Zaparoo genre taxonomy and preserve full genre search',()=>{
  assert.equal(primaryGenre('sports-football-soccer'), 'Sports');
  assert.equal(primaryGenre('racing,-drivingracing-fpv'), 'Racing');
- assert.equal(primaryGenre('action-rpgrole-playing-game'), 'Action');
+ assert.equal(primaryGenre('action-rpgrole-playing-game'), 'Role-playing Game');
+ assert.equal(primaryGenre('beatem-upbeatem-up'), 'Beat ’em Up');
+ assert.equal(primaryGenre('build-and-managementsimulation'), 'Simulation');
  assert.deepEqual(genresForCategory([{...seed[0],genre:'sports-football-soccer'}],'Consoles'),['Sports']);
  assert.deepEqual(filterGames([{...seed[0],genre:'sports-football-soccer'}],'','Consoles','collection',false,[],null,'Sports').map(g=>g.title),['Super Metroid']);
 });
@@ -69,4 +71,14 @@ test('recommendations use genre rather than system overlap',()=>{
  const recommendations=recommendGames(seed,['a']);
  assert.deepEqual(recommendations,[]);
  assert.deepEqual(recommendGames(seed,[]),[]);
+});
+
+test('Discover uses primary genres except for sports, shooter and racing sub-genres',()=>{
+ assert.equal(discoverGenreKey('sports-skiingsports'), 'sports:skiing');
+ assert.equal(discoverGenreKey('sports-football-soccersports'), 'sports:footballsoccer');
+ assert.notEqual(discoverGenreKey('sports-skiingsports'),discoverGenreKey('sports-football-soccersports'));
+ assert.equal(discoverGenreKey('shooter-run-and-gunshooter'), 'shooter:runandgun');
+ assert.notEqual(discoverGenreKey('shooter-run-and-gunshooter'),discoverGenreKey('shooter-horizontalshooter'));
+ assert.equal(discoverGenreKey('racing,-drivingracing-fpv'), 'racing:fpv');
+ assert.equal(discoverGenreKey('action-adventureaction'), 'action');
 });

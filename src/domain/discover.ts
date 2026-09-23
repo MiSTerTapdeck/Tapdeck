@@ -1,4 +1,5 @@
 import type {Game} from '../data/library';
+import {discoverGenreKey,primaryGenre} from './genre.ts';
 
 export type Recommendation={game:Game;score:number;reason:string};
 
@@ -19,10 +20,10 @@ export function recommendGames(games:Game[],seedIds:string[],playedIds:string[]=
  if(!seeds.length)return [];
  const played=new Set(playedIds);
  const candidates=games.filter(game=>!seedIds.includes(game.id)).map(game=>{
-  const matches=seeds.filter(seed=>seed.genre.trim().toLocaleLowerCase()===game.genre.trim().toLocaleLowerCase()&&game.genre!=='Not listed');
+  const matches=seeds.filter(seed=>discoverGenreKey(seed.genre)===discoverGenreKey(game.genre)&&primaryGenre(game.genre)!=='Not listed');
   const playedMatch=matches.find(seed=>played.has(seed.id));
   const score=matches.length+(playedMatch?3:0);
-  return {game,score,reason:playedMatch?`because you played ${playedMatch.title}`:matches[0]?`same ${matches[0].genre.toLocaleLowerCase()} feel`:'a good next pick'};
+  return {game,score,reason:playedMatch?`because you played ${playedMatch.title}`:matches[0]?`same ${primaryGenre(matches[0].genre).toLocaleLowerCase()} feel`:'a good next pick'};
  }).filter(item=>item.score>0);
  const seenArcade=new Set<string>();
  const deduped=candidates.filter(item=>{if(item.game.category!=='Arcade')return true;const key=item.game.title.toLocaleLowerCase().replace(/\([^)]*\)|[^a-z0-9]+/gi,'');if(seenArcade.has(key))return false;seenArcade.add(key);return true;});
