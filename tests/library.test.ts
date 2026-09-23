@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {filterGames,genresForCategory,isVintage,parseSaved,searchGamesByTitle,systemsForCategory} from '../src/domain/library.ts';
 import {discoverGenreKey,primaryGenre} from '../src/domain/genre.ts';
 import {parsePlaylists,reorderIds} from '../src/domain/playlists.ts';
-import {recommendGames} from '../src/domain/discover.ts';
+import {discoverPlatform,recommendGames} from '../src/domain/discover.ts';
 import type {Game} from '../src/data/library';
 const seed:Game[]=[
  {id:'a',title:'Super Metroid',system:'SNES',category:'Consoles',year:1994,genre:'Platform',developer:'Nintendo',players:'1',description:''},
@@ -81,4 +81,8 @@ test('Discover uses primary genres except for sports, shooter and racing sub-gen
  assert.notEqual(discoverGenreKey('shooter-run-and-gunshooter'),discoverGenreKey('shooter-horizontalshooter'));
  assert.equal(discoverGenreKey('racing,-drivingracing-fpv'), 'racing:fpv');
  assert.equal(discoverGenreKey('action-adventureaction'), 'action');
+});
+
+test('Sega CD belongs in the 16-bit Discover category',()=>{
+ assert.equal(discoverPlatform({...seed[0],system:'Sega CD'}),'16 bit');
 });
