@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {filterGames,genresForCategory,isVintage,parseSaved,searchGamesByTitle,systemsForCategory} from '../src/domain/library.ts';
 import {discoverGenreKey,primaryGenre} from '../src/domain/genre.ts';
 import {parsePlaylists,reorderIds} from '../src/domain/playlists.ts';
-import {discoverPlatform,recommendGames} from '../src/domain/discover.ts';
+import {discoverPlatform,featuredRecommendation,recommendGames} from '../src/domain/discover.ts';
 import type {Game} from '../src/data/library';
 const seed:Game[]=[
  {id:'a',title:'Super Metroid',system:'SNES',category:'Consoles',year:1994,genre:'Platform',developer:'Nintendo',players:'1',description:''},
@@ -85,4 +85,13 @@ test('Discover uses primary genres except for sports, shooter and racing sub-gen
 
 test('Sega CD belongs in the 16-bit Discover category',()=>{
  assert.equal(discoverPlatform({...seed[0],system:'Sega CD'}),'16 bit');
+});
+
+test('featured Discover recommendation prefers the seed game decade when available',()=>{
+ const items=[
+  {game:{...seed[1],year:2004},score:5,reason:''},
+  {game:{...seed[2],year:1998},score:4,reason:''},
+ ];
+ assert.equal(featuredRecommendation(items,1994)?.game.id,'c');
+ assert.equal(featuredRecommendation(items,1984)?.game.id,'b');
 });

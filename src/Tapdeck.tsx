@@ -10,7 +10,7 @@ import {categories,fallbackArtwork,fallbackThumbnail,games,type Category,type Ga
 import {filterGames,parseSaved,searchGamesByTitle,type SortOrder} from './domain/library';
 import {primaryGenre} from './domain/genre';
 import {parsePlaylists,reorderIds,type Playlist} from './domain/playlists';
-import {discoverPlatform,recommendGames,type DiscoverPlatform} from './domain/discover';
+import {discoverPlatform,featuredRecommendation,recommendGames,type DiscoverPlatform} from './domain/discover';
 import {batchDownloadLibretro,clearLibretroArtworkCache,getLibretroArtworkStats,readLibretroSnap,readLibretroThumbnail} from './domain/libretro';
 import {checkMiSTer,displayGenre,normaliseMiSTerUrl,readMiSTerLibrary,readMiSTerMetadata,readMiSTerSystems,refreshMiSTerLibraryAndMetadata,type LibraryMaintenanceProgress,type MiSTerSystem} from './domain/mister';
 import {launchMiSTerRemoteGame,returnMiSTerToMenu} from './domain/misterRemote';
@@ -249,7 +249,7 @@ function PlaylistPicker({games:pickerGames=games,playlists,active,gameId,query,o
 function rowGamesFromSystems(items:ReturnType<typeof recommendGames>){return items.filter((item,index,array)=>array.findIndex(other=>other.game.system===item.game.system)===index).slice(0,4);}
 function DiscoverView({recommendations,loading,seed,hasSignals,artworkUrl,fetchRemote,onCreatePlaylist,onOpenGame,onBrowse}:{recommendations:ReturnType<typeof recommendGames>;loading:boolean;seed:Game|null;hasSignals:boolean;artworkUrl?:string;fetchRemote:boolean;onCreatePlaylist:()=>void;onOpenGame:(game:Game)=>void;onBrowse:()=>void}){
  const [platform,setPlatform]=useState<DiscoverPlatform>('All');const [playlistMade,setPlaylistMade]=useState(false);
- const {lead,more,rowGames}=useMemo(()=>{const visible=platform==='All'?recommendations:recommendations.filter(item=>discoverPlatform(item.game)===platform);const diversified=[...visible].sort((a,b)=>b.score-a.score||a.game.title.localeCompare(b.game.title));const [first,...rest]=diversified;const withoutLead=rest.filter(item=>item.game.id!==first?.game.id);const distinct=rowGamesFromSystems(withoutLead);return {lead:first,more:withoutLead,rowGames:[...distinct,...withoutLead.filter(item=>!distinct.some(other=>other.game.id===item.game.id))].slice(0,4)}},[platform,recommendations]);
+ const {lead,more,rowGames}=useMemo(()=>{const visible=platform==='All'?recommendations:recommendations.filter(item=>discoverPlatform(item.game)===platform);const diversified=[...visible].sort((a,b)=>b.score-a.score||a.game.title.localeCompare(b.game.title));const first=featuredRecommendation(diversified,seed?.year);const withoutLead=diversified.filter(item=>item.game.id!==first?.game.id);const distinct=rowGamesFromSystems(withoutLead);return {lead:first,more:withoutLead,rowGames:[...distinct,...withoutLead.filter(item=>!distinct.some(other=>other.game.id===item.game.id))].slice(0,4)}},[platform,recommendations,seed?.year]);
  useEffect(()=>{if(loading||!lead)return;void readLibretroSnap(lead.game).catch(()=>undefined);for(const {game} of rowGames)void readLibretroThumbnail(game).catch(()=>undefined);},[lead,loading,rowGames]);
  const progress=useRef(new Animated.Value(0)).current;
  useEffect(()=>{if(!loading){progress.stopAnimation();progress.setValue(1);return;}progress.setValue(0);const loop=Animated.loop(Animated.sequence([Animated.timing(progress,{toValue:1,duration:900,useNativeDriver:false}),Animated.timing(progress,{toValue:0,duration:250,useNativeDriver:false})]));loop.start();return()=>loop.stop();},[loading,progress]);

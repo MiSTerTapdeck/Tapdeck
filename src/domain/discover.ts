@@ -4,6 +4,13 @@ import {discoverGenreKey,primaryGenre} from './genre.ts';
 export type Recommendation={game:Game;score:number;reason:string};
 
 export type DiscoverPlatform='All'|'Handheld'|'8 bit'|'16 bit'|'32/64 bit'|'Arcade';
+
+// The featured card should feel connected to the game that started a Discover session.
+// Keep the ranked order, but prefer a game released in the same decade when one exists.
+export function featuredRecommendation(items:Recommendation[],seedYear:number|null|undefined):Recommendation|undefined{
+ const decade=typeof seedYear==='number'?Math.floor(seedYear/10):null;
+ return decade===null?items[0]:items.find(item=>typeof item.game.year==='number'&&Math.floor(item.game.year/10)===decade)??items[0];
+}
 export function discoverPlatform(game:Game):DiscoverPlatform{
  if(game.category==='Arcade')return 'Arcade';
  const name=game.system.toLowerCase();
