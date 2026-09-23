@@ -16,6 +16,22 @@ function compactGenre(value:string|undefined|null){return (value??'').toLocaleLo
 export function primaryGenre(value:string|undefined|null):string {
  const raw=(value??'').trim();if(!raw||raw.toLocaleLowerCase()==='not listed')return 'Not listed';
  const key=compactGenre(raw);
+ // Some Zaparoo tags consist solely of a subtype. Fold those into the family
+ // used by the filter, Discover, and the card label.
+ if(/^(pointandclick|survivalhorror)/.test(key))return 'Adventure';
+ if(/^(breakoutgames|climbing|labyrinth)/.test(key))return 'Action';
+ if(/^(hanafuda)/.test(key))return 'Board Game';
+ if(/^(casinocards|slotmachine)/.test(key))return 'Casino';
+ if(/^(2d|25d|3d|versus|vscoop|verticalfighting)/.test(key))return 'Fighting';
+ if(/^sportswithanimals/.test(key))return 'Horse Racing';
+ if(/^rhythm/.test(key))return 'Music and Dancing';
+ if(/^(fighterscrolling|runandjump|shooterscrolling)/.test(key))return 'Platform';
+ if(/^(equalize|fall|glide|throw)/.test(key))return 'Puzzle';
+ if(/^(english|japanesequiz)/.test(key))return 'Quiz';
+ if(/^(diagonalshootemup|horizontalshootemup|verticalshootemup)/.test(key))return 'Shoot’em Up';
+ if(/^(fps|missilecommand|spaceinvaders|thirdperson|runandgun|shooterhorizontal|shootervehicle)/.test(key))return 'Shooter';
+ if(/^(lifesimulation|scifisimulation|vehiclesimulation)/.test(key))return 'Simulation';
+ if(/^(baseball|basketball|boxing|cycling|football|golf|hockey|multisports|pool|rugby|skiing|swimming|tennis|wrestling)/.test(key))return 'Sports';
  if(/^(tacticalrpg)/.test(key))return 'Tactical RPG';
  if(/^(actionrpg|dungeoncrawlerrpg|japaneserpg|partybasedrpg|roleplayinggame)/.test(key))return 'Role-playing Game';
  if(/^horseracing/.test(key))return 'Horse Racing';
@@ -68,4 +84,32 @@ export function discoverGenreKey(value:string|undefined|null):string {
 
 export function genresForCategory(games:Game[],category:Category,system:string|null=null):string[] {
  return [...new Set(games.filter(g=>(category==='All'||g.category===category)&&(!system||g.system===system)).map(g=>primaryGenre(g.genre)).filter(genre=>genre!=='Not listed'))].sort((a,b)=>a.localeCompare(b));
+}
+
+const cardSubgenres:Partial<Record<string,readonly [string,string][]>>={
+ Action:[['actionadventure','Action Adventure'],['breakout','Breakout Games'],['climbing','Climbing'],['labyrinth','Labyrinth']],
+ Adventure:[['pointandclick','Point and Click'],['survivalhorror','Survival Horror']],
+ 'Board Game':[['asiaticboardgame','Asiatic Board Game'],['hanafuda','Hanafuda'],['mahjong','Mahjong'],['othello','Othello'],['renju','Renju'],['shougi','Shougi']],
+ Casino:[['casinocards','Casino Cards'],['slotmachine','Slot Machine']],
+ Fighting:[['25d','2.5D'],['2d','2D'],['3d','3D'],['vscoop','Vs Co-op'],['versus','Versus'],['vertical','Vertical']],
+ Fishing:[['huntingandfishing','Hunting and Fishing']],
+ Hunting:[['huntingandfishing','Hunting and Fishing']],
+ 'Horse Racing':[['sportswithanimals','Sports With Animals']],
+ 'Music and Dancing':[['rhythm','Rhythm']],
+ Platform:[['fighterscrolling','Fighter Scrolling'],['runandjump','Run and Jump'],['shooterscrolling','Shooter Scrolling']],
+ Puzzle:[['equalize','Equalize'],['fall','Fall'],['glide','Glide'],['throw','Throw']],
+ Quiz:[['english','English'],['japanese','Japanese']],
+ Racing:[['driving','Driving'],['boat','Boat'],['motorcycle','Motorcycle'],['plane','Plane'],['fpv','FPV'],['tpv','TPV']],
+ 'Role-playing Game':[['actionrpg','Action RPG'],['dungeoncrawlerrpg','Dungeon Crawler RPG'],['japaneserpg','Japanese RPG'],['partybasedrpg','Party-based RPG']],
+ 'Shoot’em Up':[['diagonal','Diagonal'],['horizontal','Horizontal'],['vertical','Vertical']],
+ Shooter:[['fps','FPS'],['horizontal','Horizontal'],['missilecommand','Missile Command-like'],['plane','Plane'],['runandgun','Run and Gun'],['spaceinvaders','Space Invaders-like'],['thirdperson','Third Person'],['vehicle','Vehicle']],
+ Simulation:[['buildandmanagement','Build and Management'],['life','Life'],['scifi','Sci-fi'],['vehicle','Vehicle']],
+ Sports:[['baseball','Baseball'],['basketball','Basketball'],['boxing','Boxing'],['cycling','Cycling'],['football','Football'],['golf','Golf'],['hockey','Hockey'],['multisports','Multi-sports'],['pool','Pool'],['rugby','Rugby'],['skiing','Skiing'],['swimming','Swimming'],['tennis','Tennis'],['wrestling','Wrestling']],
+};
+
+// Cards use the friendly taxonomy rather than Zaparoo's often-conjoined raw tag.
+export function cardGenre(value:string|undefined|null):string {
+ const primary=primaryGenre(value);if(primary==='Not listed')return primary;
+ const subgenre=cardSubgenres[primary]?.find(([needle])=>compactGenre(value).includes(needle))?.[1];
+ return subgenre?primary+' — '+subgenre:primary;
 }

@@ -2,6 +2,7 @@ import React,{useRef} from 'react';
 import {Platform,Animated,Pressable,StyleSheet,Text,View} from 'react-native';
 import type {Game} from '../data/library';
 import {isVintage} from '../domain/library';
+import {cardGenre} from '../domain/genre';
 import {fonts,palette as c} from '../theme';
 import {Paper} from './Paper';
 import {Icon} from './Icon';
@@ -15,7 +16,7 @@ function GameCardImpl({game,index,saved,onPress,reducedMotion,artworkUrl,fetchRe
   <Paper opacity={vintage?.8:.14}/>
   <View style={s.top}><Text style={s.serial}>{String(index+1).padStart(3,'0')}</Text><Text style={[s.system,{color:game.system==='Mega Drive'?'#375970':game.system==='Arcade'?'#58623F':'#91402B'}]}>{game.system.toUpperCase()}</Text></View>
   <View style={s.art}><ArtworkImage game={game} misterUrl={artworkUrl} allowDownload={allowDownload} style={s.image}/></View>
-  <View style={s.cardFoot}><Text style={s.cardGenre} numberOfLines={1}>{game.genre==='Not listed'?'COLLECTION':game.genre.toUpperCase()}</Text>{saved?<Icon name="bookmark" filled size={13} color={c.orange}/>:<Text style={s.year}>{game.year??'—'}</Text>}</View>
+  <View style={s.cardFoot}><Text style={s.cardGenre} numberOfLines={1}>{cardGenre(game.genre)==='Not listed'?'COLLECTION':cardGenre(game.genre).toUpperCase()}</Text>{saved?<Icon name="bookmark" filled size={13} color={c.orange}/>:<Text style={s.year}>{game.year??'—'}</Text>}</View>
  </Animated.View>
  <Text style={s.title} numberOfLines={2}>{game.title}</Text>
  <Text style={s.subtitle}>{game.system} <Text style={{color:'#AA9C85'}}>·</Text> {game.year??'Year unknown'}{!vintage?'  ·  Recent release':''}</Text>

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {filterGames,genresForCategory,isVintage,parseSaved,searchGamesByTitle,systemsForCategory} from '../src/domain/library.ts';
-import {discoverGenreKey,primaryGenre} from '../src/domain/genre.ts';
+import {cardGenre,discoverGenreKey,primaryGenre} from '../src/domain/genre.ts';
 import {parsePlaylists,reorderIds} from '../src/domain/playlists.ts';
 import {discoverPlatform,featuredRecommendation,recommendGames} from '../src/domain/discover.ts';
 import type {Game} from '../src/data/library';
@@ -94,4 +94,11 @@ test('featured Discover recommendation prefers the seed game decade when availab
  ];
  assert.equal(featuredRecommendation(items,1994)?.game.id,'c');
  assert.equal(featuredRecommendation(items,1984)?.game.id,'b');
+});
+test('cards show the cleaned primary and recognised sub-genre',()=>{
+ assert.equal(cardGenre('sports-skiingsports'),'Sports — Skiing');
+ assert.equal(cardGenre('shootem-up-verticalshootem-up'),'Shoot’em Up — Vertical');
+ assert.equal(cardGenre('action-rpgrole-playing-game'),'Role-playing Game — Action RPG');
+ assert.equal(cardGenre('platform-run-and-jumpplatform'),'Platform — Run and Jump');
+ assert.equal(cardGenre('action-adventureaction'),'Action — Action Adventure');
 });
