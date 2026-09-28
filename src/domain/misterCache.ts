@@ -3,6 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import {Platform} from 'react-native';
 import type {Game} from '../data/library';
 import {groupGenericArcadeGames} from './arcadeCores';
+import {parseRating} from './gamelist';
 
 const LEGACY_KEY='tapdeck.mister-library.v1';
 const LIBRARY_FILE='tapdeck-library.json';
@@ -20,7 +21,7 @@ function applyArcadeCoreMap(games:Game[]){
 }
 function validGames(value:unknown):Game[]{
  if(!Array.isArray(value))return [];
- return value.filter((game):game is Game=>!!game&&typeof game==='object'&&typeof game.id==='string'&&typeof game.title==='string'&&typeof game.system==='string'&&['Consoles','Computers','Arcade'].includes(game.category)&&typeof game.remotePath==='string');
+ return value.filter((game):game is Game=>!!game&&typeof game==='object'&&typeof game.id==='string'&&typeof game.title==='string'&&typeof game.system==='string'&&['Consoles','Computers','Arcade'].includes(game.category)&&typeof game.remotePath==='string').map(game=>({...game,rating:typeof game.rating==='number'?game.rating:parseRating(typeof game.rating==='string'?game.rating:undefined),region:typeof game.region==='string'?game.region:undefined}));
 }
 export async function loadCachedMiSTerLibrary():Promise<Game[]>{
  if(Platform.OS!=='web'&&FileSystem.documentDirectory){

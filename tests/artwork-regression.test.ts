@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {parseArtworkDirectory,parseArtworkDirectoryInChunks,matchLibretroFilename,matchLibretroFilenameInChunks,libretroSystemsFor,libretroArtworkIdentity,artworkCacheFilename,libretroArtworkUrl} from '../src/domain/libretroNaming.ts';
-import {c64RunCommands,c64TapeLoadCommands,isC64TapeImage,isSpectrumTapeImage,launchRoutesFor,spectrumTapeLoadCommands} from '../src/domain/misterRemote.ts';
+import {amigaVisionCanonicalTitle,c64RunCommands,c64TapeLoadCommands,isC64TapeImage,isSpectrumTapeImage,launchRoutesFor,spectrumTapeLoadCommands,usbMountCandidates} from '../src/domain/misterRemote.ts';
 test('Eco Fighters resolves from a directory containing malformed percent escapes',()=>{
  const names=parseArtworkDirectory(`<a href="100% game.png">x</a><a href="Eco%20Fighters%20(USA%20940215).png">x</a>`);
  const game={title:'Eco Fighters',system:'Capcom Play II',category:'Arcade',id:'eco'} as any;
@@ -19,7 +19,7 @@ test('Neo Geo MVS prioritizes the dedicated Neo Geo artwork set',()=>{
 });
 test('Neo Geo MVS artwork uses a new cache identity after the source correction',()=>{
  const game={title:'Samurai Shodown',system:'Neo Geo MVS',remoteSystemId:'neogeo-mvs',remoteFilePath:'/media/fat/games/Neo Geo MVS/samsho.zip',category:'Arcade',id:'samsho'} as any;
- assert.match(libretroArtworkIdentity(game),/neo-geo-source-v2/);
+ assert.match(libretroArtworkIdentity(game),/neo-geo-source-v3/);
 });
 test('ZX Spectrum artwork uses a new cache identity after the matcher correction',()=>{
  const game={title:'Academy - Side 1',system:'ZXSpectrum',remoteSystemId:'ZXSpectrum',remoteFilePath:'/media/usb3/games/Spectrum/Academy - Side 1.tzx',category:'Computers',id:'academy'} as any;
@@ -74,10 +74,15 @@ test('long ROM paths produce bounded, distinct cache filenames',()=>{
 });
 
 
-test('C64 and Spectrum use MiSTer Remote’s game loader before the compatibility route',()=>{
- assert.deepEqual(launchRoutesFor({remoteSystemId:'C64'} as any),['/games/launch','/launch']);
- assert.deepEqual(launchRoutesFor({remoteSystemId:'ZXSpectrum'} as any),['/games/launch','/launch']);
- assert.deepEqual(launchRoutesFor({remoteSystemId:'SNES'} as any),['/launch']);
+test('every system uses MiSTer Remote’s game launch endpoint',()=>{
+ assert.deepEqual(launchRoutesFor({remoteSystemId:'C64'} as any),['/games/launch']);
+ assert.deepEqual(launchRoutesFor({remoteSystemId:'ZXSpectrum'} as any),['/games/launch']);
+ assert.deepEqual(launchRoutesFor({remoteSystemId:'SNES'} as any),['/games/launch']);
+});
+test('USB game paths are checked against every MiSTer USB mount without changing their game-relative path',()=>{
+ const expected=Array.from({length:8},(_,index)=>`/media/usb${index}/games/SNES/3 Ninjas Kick Back (USA).sfc`);
+ assert.deepEqual(usbMountCandidates('/media/usb0/games/SNES/3 Ninjas Kick Back (USA).sfc'),expected);
+ assert.deepEqual(usbMountCandidates('/media/fat/games/SNES/3 Ninjas Kick Back (USA).sfc'),['/media/fat/games/SNES/3 Ninjas Kick Back (USA).sfc']);
 });
 
 test('C64 T64 files start the tape load command without changing cartridge launches',()=>{
@@ -92,4 +97,46 @@ test('Spectrum tape files use the MiSTer core autoload shortcut without affectin
  assert.equal(isSpectrumTapeImage({remoteSystemId:'ZXSpectrum',remoteFilePath:'/media/usb3/games/Spectrum/Academy.tap'} as any),true);
  assert.equal(isSpectrumTapeImage({remoteSystemId:'ZXSpectrum',remoteFilePath:'/media/usb3/games/Spectrum/Academy.z80'} as any),false);
  assert.deepEqual(spectrumTapeLoadCommands(),['kbdRaw:68']);
+});
+
+test('AmigaVision virtual games retain the canonical title needed by ags_boot',()=>{
+ assert.equal(amigaVisionCanonicalTitle({remoteSystemId:'Amiga',remoteFilePath:'/media/fat/games/Amiga/Games/1000 Miglia (OCS)[en]'}),'1000 Miglia (OCS)[en]');
+ assert.equal(amigaVisionCanonicalTitle({remoteSystemId:'Amiga',remoteFilePath:'/media/fat/games/Amiga/Demos/State of the Art (AGA)'}),'State of the Art (AGA)');
+ assert.equal(amigaVisionCanonicalTitle({remoteSystemId:'Amiga',remoteFilePath:'/media/fat/games/Amiga/Normal Game.adf'}),undefined);
+ assert.equal(amigaVisionCanonicalTitle({remoteSystemId:'SNES',remoteFilePath:'/media/fat/games/Amiga/Games/1000 Miglia (OCS)[en]'}),undefined);
+});
+
+test('artwork cache identities survive a Zaparoo file-path refresh',()=>{
+ const before={title:'Ballblazer',system:'Atari 7800',category:'Consoles',id:'ballblazer',remoteSystemId:'atari7800',remoteFilePath:'/media/usb0/games/Atari 7800/Ballblazer.a78'} as any;
+ const after={...before,remoteFilePath:'/media/fat/games/Atari 7800/Ballblazer.a78'};
+ assert.equal(libretroArtworkIdentity(before),libretroArtworkIdentity(after));
+});
+
+test('SuperGrafx uses its dedicated Libretro folder and handles expanded titles',()=>{
+ const game={system:'SuperGrafx',remoteSystemId:'supergrafx',category:'Consoles',id:'sg'} as any;
+ assert.deepEqual(libretroSystemsFor(game)?.directories,['NEC - PC Engine SuperGrafx']);
+ assert.equal(matchLibretroFilename({...game,title:'Aldynes'},['Aldynes - The Misson Code for Rage Crisis (Japan).png']),'Aldynes - The Misson Code for Rage Crisis (Japan).png');
+ assert.equal(matchLibretroFilename({...game,title:'Madou ou Granzort'},['Madou King Granzort (Japan).png']),'Madou King Granzort (Japan).png');
+});
+
+test('HBMAME suffixes are ignored when matching arcade artwork',()=>{ assert.equal(matchLibretroFilename({title:'Alien Storm (HBMAME)',category:'Arcade',id:'alien-storm'} as any,['Alien Storm (World, 2 Players).png']),'Alien Storm (World, 2 Players).png'); });
+
+test('readable system names resolve to their Libretro thumbnail directories',()=>{
+ const cases:[string,string][]=[
+  ['ColecoVision','Coleco - ColecoVision'],
+  ['Commodore 64','Commodore - 64'],
+  ['Amstrad CPC','Amstrad - CPC'],
+  ['MSX2','Microsoft - MSX2'],
+  ['Sega SG-1000','Sega - SG-1000'],
+  ['Sony PlayStation Portable','Sony - PlayStation Portable']
+ ];
+ for(const [system,directory] of cases)assert.deepEqual(libretroSystemsFor({title:'Test game',system,category:'Computers',id:system} as any)?.directories,[directory]);
+});
+test('Neo Geo base titles do not match sequel box art first',()=>{
+ const names=[
+  'Art of Fighting 2 _ Ryuuko no Ken 2 (NGM-056).png',
+  'Art of Fighting _ Ryuuko no Ken (NGM-044)(NGH-044).png'
+ ];
+ assert.equal(matchLibretroFilename({title:'Art of Fighting',id:'aof'} as any,names),names[1]);
+ assert.equal(matchLibretroFilename({title:'Art of Fighting 2',id:'aof2'} as any,names),names[0]);
 });

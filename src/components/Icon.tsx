@@ -1,6 +1,5 @@
-import React from 'react';
 import Svg,{Path,Circle,Rect} from 'react-native-svg';
-export type IconName='search'|'back'|'close'|'bookmark'|'library'|'playlist'|'compass'|'settings'|'sort'|'play'|'check'|'computer'|'gamepad'|'info'|'arrow'|'plus'|'up'|'down'|'trash'|'pencil';
+export type IconName='search'|'back'|'close'|'bookmark'|'library'|'playlist'|'compass'|'settings'|'sort'|'play'|'check'|'computer'|'gamepad'|'info'|'arrow'|'plus'|'up'|'down'|'trash'|'pencil'|'dice';
 export function Icon({name,size=22,color='#28251F',filled=false}:{name:IconName;size?:number;color?:string;filled?:boolean}) {
  const paths:Partial<Record<IconName,string>>={
  search:'m16 16 4.5 4.5',back:'m14 5-7 7 7 7',close:'m6 6 12 12M6 18 18 6',
@@ -14,6 +13,7 @@ export function Icon({name,size=22,color='#28251F',filled=false}:{name:IconName;
  };
  return <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden={true}>
   {name==='search'&&<Circle cx="10.5" cy="10.5" r="6.5" stroke={color} strokeWidth="1.6"/>}
+  {name==='dice'&&<><Rect x="4.5" y="4.5" width="15" height="15" rx="2.5" stroke={color} strokeWidth="1.6"/><Circle cx="8.5" cy="8.5" r="1" fill={color}/><Circle cx="15.5" cy="8.5" r="1" fill={color}/><Circle cx="12" cy="12" r="1" fill={color}/><Circle cx="8.5" cy="15.5" r="1" fill={color}/><Circle cx="15.5" cy="15.5" r="1" fill={color}/></>}
   {(name==='compass'||name==='info')&&<Circle cx="12" cy="12" r="9" stroke={color} strokeWidth="1.5"/>}
   <Path d={paths[name]} stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill={filled?color:'none'}/>
  </Svg>;

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {filterGames,genresForCategory,isVintage,parseSaved,searchGamesByTitle,systemsForCategory} from '../src/domain/library.ts';
 import {cardGenre,discoverGenreKey,primaryGenre} from '../src/domain/genre.ts';
 import {parsePlaylists,reorderIds} from '../src/domain/playlists.ts';
+import {chooseIgdbRating} from '../src/domain/igdb.ts';
+import {formatRegion,parseRating,parseYear,regionFlag} from '../src/domain/gamelist.ts';
 import {discoverPlatform,featuredRecommendation,recommendGames} from '../src/domain/discover.ts';
 import type {Game} from '../src/data/library';
 const seed:Game[]=[
@@ -17,6 +19,9 @@ test('search combines words across metadata and intersects the category',()=>{
 test('saved filter intersects search without mutating input order',()=>{
  assert.deepEqual(filterGames(seed,'SNES','All','year',true,['a','c']).map(g=>g.id),['c','a']);
  assert.deepEqual(seed.map(g=>g.id),['a','b','c']);
+});
+test('rating sort uses only imported local ratings',()=>{
+ assert.deepEqual(filterGames([{...seed[0],rating:60},{...seed[1],rating:90},{...seed[2]}],'','All','rating').map(game=>game.id),['b','a','c']);
 });
 test('release age controls condition; unknown years are not treated as old',()=>{
  assert.equal(isVintage(1994,2026),true);assert.equal(isVintage(2026,2026),false);
@@ -73,6 +78,16 @@ test('recommendations use genre rather than system overlap',()=>{
  assert.deepEqual(recommendGames(seed,[]),[]);
 });
 
+test('Discover excludes only known ratings below 60%',()=>{
+ const games=[
+  {...seed[0],id:'seed',genre:'Sports'},
+  {...seed[1],id:'low',genre:'Sports',rating:59},
+  {...seed[2],id:'qualifies',genre:'Sports',rating:60},
+  {...seed[1],id:'unrated',genre:'Sports',rating:undefined},
+ ];
+ assert.deepEqual([...recommendGames(games,['seed']).map(item=>item.game.id)].sort(),['qualifies','unrated']);
+});
+
 test('Discover uses primary genres except for sports, shooter and racing sub-genres',()=>{
  assert.equal(discoverGenreKey('sports-skiingsports'), 'sports:skiing');
  assert.equal(discoverGenreKey('sports-football-soccersports'), 'sports:footballsoccer');
@@ -101,4 +116,49 @@ test('cards show the cleaned primary and recognised sub-genre',()=>{
  assert.equal(cardGenre('action-rpgrole-playing-game'),'Role-playing Game — Action RPG');
  assert.equal(cardGenre('platform-run-and-jumpplatform'),'Platform — Run and Jump');
  assert.equal(cardGenre('action-adventureaction'),'Action — Action Adventure');
+});
+test('IGDB rating selection prefers an exact title and closest release year',()=>{
+ const rating=chooseIgdbRating([
+  {name:'Another Game',total_rating:99,first_release_date:0},
+  {name:'The Sonic',rating:81.4,first_release_date:631152000,platforms:[{name:'Sega Genesis'}]},
+  {name:'Sonic',rating:70,first_release_date:1704067200,platforms:[{name:'Sega Genesis'}]},
+ ],{title:'Sonic',year:1990,system:'Mega Drive'});
+ assert.equal(rating,81.4);
+ assert.equal(chooseIgdbRating([{name:'Unrelated'}],{title:'Sonic',year:1990,system:'Mega Drive'}),undefined);
+ assert.equal(chooseIgdbRating([{name:'Sonic',rating:99,platforms:[{name:'PlayStation'}]}],{title:'Sonic',year:1990,system:'Mega Drive'}),undefined);
+ assert.equal(chooseIgdbRating([{name:'Asteroids',rating:undefined,first_release_date:315532800,platforms:[{name:'Atari 2600'}]},{name:'Asteroids',total_rating:61.6,first_release_date:347155200,platforms:[{name:'Atari 2600'}]}],{title:'Asteroids',year:1981,system:'Atari 2600'}),61.6);
+ assert.equal(chooseIgdbRating([{name:'Eco Fighters',total_rating:62.8,platforms:[{name:'Arcade'}]}],{title:'Eco Fighters',year:1994,system:'Capcom Play System II',category:'Arcade'}),62.8);
+});
+test('gamelist dates are normalised into list years',()=>{
+ assert.equal(parseYear('1994'),1994);
+ assert.equal(parseYear('1994-11-21'),1994);
+ assert.equal(parseYear('19941121'),1994);
+ assert.equal(parseYear(undefined),null);
+});
+test('gamelist ratings and regions are displayed consistently',()=>{
+ assert.equal(parseRating('0.8'),80);
+ assert.equal(parseRating('85'),85);
+ assert.equal(parseRating('not a rating'),undefined);
+ assert.equal(formatRegion('USA'),'USA 🇺🇸');
+ assert.equal(regionFlag('Japan'),'🇯🇵');
+ assert.equal(formatRegion('Europe'),'Europe 🇪🇺');
+ assert.equal(formatRegion('Unknown territory'),'Unknown territory');
+});
+
+test('Discover categorises C64 and ZX Spectrum as 8 bit',()=>{
+ const base={id:'system-check',title:'Test',category:'Computers' as const,year:null,developer:'Not listed',genre:'Platform',players:'1',description:''};
+ assert.equal(discoverPlatform({...base,system:'Commodore 64'}),'8 bit');
+ assert.equal(discoverPlatform({...base,system:'ZX Spectrum'}),'8 bit');
+ assert.equal(discoverPlatform({...base,system:'Sinclair ZX Spectrum'}),'8 bit');
+});
+
+test('Arcade picker includes every arcade drill-down group',()=>{ const games=[{id:'cps',title:'Street Fighter II',system:'CPS 1',category:'Arcade',genre:'Fighting',developer:'Capcom',year:1991,description:''},{id:'sega',title:'Out Run',system:'Sega',category:'Arcade',genre:'Racing',developer:'Sega',year:1986,description:''},{id:'snes',title:'F-Zero',system:'SNES',category:'Consoles',genre:'Racing',developer:'Nintendo',year:1990,description:''}] as any; assert.deepEqual(filterGames(games,'','Arcade','collection',false,[],'Arcade').map(game=>game.id),['cps','sega']); assert.deepEqual(filterGames(games,'','Arcade','collection',false,[],'CPS 1').map(game=>game.id),['cps']); });
+
+test('Discover caps each platform category at twenty games',()=>{
+ const platforms=[['Game Boy','Consoles'],['NES','Consoles'],['SNES','Consoles'],['PlayStation','Consoles'],['MAME','Arcade']] as const;
+ const games:any[]=[{...seed[0],id:'seed',system:'SNES',category:'Consoles',genre:'Action'}];
+ for(const [system,category] of platforms)for(let index=0;index<25;index++)games.push({...seed[0],id:`${system}-${index}`,title:`${system} Game ${index}`,system,category,genre:'Action'});
+ const results=recommendGames(games,['seed']);
+ assert.equal(results.length,100);
+ for(const platform of ['Handheld','8 bit','16 bit','32/64 bit','Arcade'] as const)assert.equal(results.filter(item=>discoverPlatform(item.game)===platform).length,20);
 });

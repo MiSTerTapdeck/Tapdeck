@@ -5,9 +5,9 @@ import {cardGenre} from '../domain/genre';
 import {fonts,palette as c} from '../theme';
 import {Icon} from './Icon';
 import {ArtworkImage} from './ArtworkImage';
-function GameRowImpl({game,saved,onPress,annotation,trailing,artworkUrl,fetchRemote,allowDownload=true}:{game:Game;saved:boolean;onPress:()=>void;annotation?:string;trailing?:React.ReactNode;artworkUrl?:string;fetchRemote?:boolean;allowDownload?:boolean}) {
+function GameRowImpl({game,saved,onPress,annotation,trailing,artworkUrl,allowDownload=true}:{game:Game;saved:boolean;onPress:()=>void;annotation?:string;trailing?:React.ReactNode;artworkUrl?:string;allowDownload?:boolean}) {
  return <Pressable testID={`row-${game.id}`} accessibilityRole="button" accessibilityLabel={`Open ${game.title}, ${game.system}, ${game.year??'year unknown'}${saved?', saved':''}`} onPress={onPress} style={({pressed})=>[s.row,pressed&&s.pressed]}>
-  <View style={s.thumb}><ArtworkImage game={game} misterUrl={artworkUrl} allowDownload={allowDownload} style={s.image}/></View>
+  <View style={s.thumb}><ArtworkImage game={game} misterUrl={artworkUrl} allowDownload={allowDownload} priority="visible" style={s.image}/></View>
   <View style={s.copy}><Text style={s.title} numberOfLines={1}>{game.title}</Text><Text style={s.meta}>{game.system} <Text style={s.dot}>·</Text> {game.year??'Year unknown'}</Text><Text style={s.genre} numberOfLines={1}>{annotation??cardGenre(game.genre)}</Text></View>
   {trailing??(saved&&<Icon name="bookmark" filled size={16} color={c.orange}/>)}
  </Pressable>;

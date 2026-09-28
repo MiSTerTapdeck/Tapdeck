@@ -81,3 +81,7 @@ skills-lock.json
 /scripts/igdb-enrich.mjs
 
 /.tmp-*
+
+/integrations/amigavision-bridge/.go-cache/
+
+/.tapdeck-validation-export/

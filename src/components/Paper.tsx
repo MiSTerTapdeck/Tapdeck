@@ -1,4 +1,3 @@
-import React from 'react';
 import {Image,StyleSheet,View} from 'react-native';
 import Svg,{Path,Line} from 'react-native-svg';
 import {paper} from '../theme';
