@@ -34,7 +34,7 @@ export async function loadCachedMiSTerLibrary():Promise<Game[]>{
  return applyArcadeCoreMap(parseGames(await AsyncStorage.getItem(LEGACY_KEY)??'[]'));
 }
 export async function saveCachedMiSTerLibrary(games:Game[]):Promise<void>{
- const value=JSON.stringify(games.map(({image,scene,...game})=>game));
+ const value=JSON.stringify(applyArcadeCoreMap(games).map(({image,scene,...game})=>game));
  if(Platform.OS!=='web'&&FileSystem.documentDirectory){
   await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}${LIBRARY_BACKUP_FILE}`,value);
   await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}${LIBRARY_FILE}`,value);

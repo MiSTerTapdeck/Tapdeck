@@ -65,6 +65,13 @@ async function read(game:Game,kind:LibretroArtworkKind,id:string,shouldCancel?:(
 }
 async function validCachedSource(...ids:string[]){for(const id of ids){const source=await cachedLocalSource(id);if(source)return source;}}
 function legacySnapIdentity(game:Game){return `${legacyLibretroArtworkIdentity(game)}::snap-v2`;}
+// Cache filenames are deterministic. Supplying this URI on the first render
+// lets React Native begin decoding a downloaded image before the async cache
+// check finishes, avoiding a genre-art flash in recycled card cells.
+export function optimisticLibretroArtworkSource(game:Game,preferSnap=false):ImageSourcePropType|undefined{
+ const id=preferSnap?libretroSnapArtworkIdentity(game):libretroArtworkIdentity(game);
+ const target=localUri(id);return target?{uri:target}:undefined;
+}
 export const readCachedLibretroThumbnail=(game:Game)=>validCachedSource(libretroArtworkIdentity(game),legacyLibretroArtworkIdentity(game));
 export const readLibretroThumbnail=(game:Game,urgent=false,shouldCancel?:()=>boolean)=>read(game,'Named_Boxarts',libretroArtworkIdentity(game),shouldCancel,urgent);
 export const readCachedLibretroSnap=(game:Game)=>validCachedSource(libretroSnapArtworkIdentity(game),legacySnapIdentity(game));
@@ -77,13 +84,13 @@ export const readCachedLibretroTitle=(game:Game)=>validCachedSource(libretroTitl
 export const readLibretroTitle=(game:Game)=>read(game,'Named_Titles',libretroTitleArtworkIdentity(game));
 // The library list owns visible-artwork scheduling. This keeps downloads tied to
 // items the user can currently see instead of relying on recycled cell effects.
-export async function ensureVisibleLibretroArtwork(game:Game,shouldCancel?:()=>boolean):Promise<ImageSourcePropType|undefined>{
+export async function ensureVisibleLibretroArtwork(game:Game,shouldCancel?:()=>boolean,urgent=false):Promise<ImageSourcePropType|undefined>{
  const [cachedBox,cachedSnap]=await Promise.all([readCachedLibretroThumbnail(game),readCachedLibretroSnap(game)]);
  if(cachedBox||cachedSnap)return cachedBox??cachedSnap;
  // Visible lists call this in screen order. Keep it on the normal FIFO queue so
  // the artwork nearest the top of the screen takes the next available slot.
  // `urgent` is reserved for an explicit card open, which should still jump ahead.
- return (await readLibretroThumbnail(game,false,shouldCancel))??readLibretroSnap(game,false,shouldCancel);
+ return (await readLibretroThumbnail(game,urgent,shouldCancel))??readLibretroSnap(game,urgent,shouldCancel);
 }
 export async function warmLibretroThumbnails(records:Game[],progress?:(done:number,total:number)=>void){let done=0;for(const game of records){const box=await readCachedLibretroThumbnail(game);const snap=await readCachedLibretroSnap(game);if(!box&&!snap){const downloadedBox=await readLibretroThumbnail(game).catch(()=>undefined);if(!downloadedBox)await readLibretroSnap(game).catch(()=>undefined);}progress?.(++done,records.length);}}
 export type BatchArtworkResult={checked:number;available:number;unmatched:number};
@@ -119,4 +126,16 @@ export async function clearLibretroArtworkCache():Promise<void>{
  artworkPending.clear();
  if(!FileSystem.documentDirectory)return;
  await FileSystem.deleteAsync(`${FileSystem.documentDirectory}tapdeck-libretro/`,{idempotent:true});
+}
+export async function clearLibretroArtworkForGames(records:Game[]):Promise<void>{
+ const ids=new Set<string>();
+ for(const game of records){
+  ids.add(libretroArtworkIdentity(game));ids.add(legacyLibretroArtworkIdentity(game));
+  ids.add(libretroSnapArtworkIdentity(game));ids.add(legacySnapIdentity(game));
+  ids.add(libretroTitleArtworkIdentity(game));
+ }
+ for(const id of ids){
+  webArtworkCache.delete(id);artworkPending.delete(id);
+  const target=localUri(id);if(target)await FileSystem.deleteAsync(target,{idempotent:true}).catch(()=>{});
+ }
 }

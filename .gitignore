@@ -83,5 +83,6 @@ skills-lock.json
 /.tmp-*
 
 /integrations/amigavision-bridge/.go-cache/
+/integrations/igdb-metadata-bridge/.gocache/
 
 /.tapdeck-validation-export/

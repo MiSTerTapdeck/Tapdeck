@@ -1,5 +1,5 @@
 import type {Game} from '../data/library';
-import {arcadeCpsByMraName,arcadeManufacturerByMraName} from '../data/arcadeCoreMap';
+import {arcadeCpsByMraName,arcadeManufacturerByMraName} from '../data/arcadeCoreMap.ts';
 
 const groups=['Capcom','Irem','Jaleco','Namco','Sega','Taito'] as const;
 function groupForSystem(value?:string){

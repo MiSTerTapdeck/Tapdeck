@@ -9,6 +9,8 @@ threeDO:['3DO'],arcadia:['Emerson - Arcadia 2001'],adventurevision:['Entex - Adv
 const systemAliases:Record<string,string[]>={
  colecovision:['Coleco - ColecoVision'],commodore64:['Commodore - 64'],
  commodoreamiga:['Commodore - Amiga'],amstradcpc:['Amstrad - CPC'],
+ ao486:['DOS'],dos:['DOS'],pcdos:['DOS'],pcdosgames:['DOS'],
+ cd32:['Commodore - CD32'],amigacd32:['Commodore - CD32'],commodorecd32:['Commodore - CD32'],
  msx:['Microsoft - MSX'],microsoftmsx:['Microsoft - MSX'],
  msx2:['Microsoft - MSX2'],microsoftmsx2:['Microsoft - MSX2'],
  zx81:['Sinclair - ZX 81'],sinclairzx81:['Sinclair - ZX 81'],

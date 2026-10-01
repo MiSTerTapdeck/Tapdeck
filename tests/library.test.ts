@@ -1,23 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {filterGames,genresForCategory,isVintage,parseSaved,searchGamesByTitle,systemsForCategory} from '../src/domain/library.ts';
+import {filterGames,genresForCategory,isVintage,parseSaved,searchGames,systemsForCategory} from '../src/domain/library.ts';
 import {cardGenre,discoverGenreKey,primaryGenre} from '../src/domain/genre.ts';
 import {parsePlaylists,reorderIds} from '../src/domain/playlists.ts';
 import {chooseIgdbRating} from '../src/domain/igdb.ts';
 import {formatRegion,parseRating,parseYear,regionFlag} from '../src/domain/gamelist.ts';
 import {discoverPlatform,featuredRecommendation,recommendGames} from '../src/domain/discover.ts';
+import {groupGenericArcadeGames} from '../src/domain/arcadeCores.ts';
 import type {Game} from '../src/data/library';
 const seed:Game[]=[
  {id:'a',title:'Super Metroid',system:'SNES',category:'Consoles',year:1994,genre:'Platform',developer:'Nintendo',players:'1',description:''},
  {id:'b',title:'Turrican II',system:'Amiga',category:'Computers',year:1991,genre:'Action',developer:'Factor 5',players:'1',description:''},
  {id:'c',title:'Modern game',system:'SNES',category:'Consoles',year:2026,genre:'Action',developer:'Studio',players:'1',description:''},
 ];
-test('search combines words across metadata and intersects the category',()=>{
- assert.deepEqual(filterGames(seed,'  nintendo  SNES ','Consoles').map(g=>g.id),['a']);
+test('search combines title and developer terms and intersects the category',()=>{
+ assert.deepEqual(filterGames(seed,'  nintendo  metroid ','Consoles').map(g=>g.id),['a']);
  assert.equal(filterGames(seed,'Nintendo','Computers').length,0);
 });
 test('saved filter intersects search without mutating input order',()=>{
- assert.deepEqual(filterGames(seed,'SNES','All','year',true,['a','c']).map(g=>g.id),['c','a']);
+ assert.deepEqual(filterGames(seed,'','All','year',true,['a','c']).map(g=>g.id),['c','a']);
  assert.deepEqual(seed.map(g=>g.id),['a','b','c']);
 });
 test('rating sort uses only imported local ratings',()=>{
@@ -52,10 +53,12 @@ test('genre options respect the active family and genre filter intersects other 
  assert.deepEqual(filterGames(seed,'','Consoles','collection',false,[],null,'Platform').map(g=>g.id),['a']);
  assert.deepEqual(filterGames(seed,'Nintendo','Consoles','collection',true,['a'],null,'Platform').map(g=>g.id),['a']);
 });
-test('global game search matches titles only and ignores metadata matches',()=>{
+test('global and playlist search match the same title and developer fields as system lists',()=>{
  const games=[...seed,{...seed[1],id:'d',title:'Unrelated game',developer:'Sonic Team'}];
- assert.deepEqual(searchGamesByTitle(games,'metroid').map(game=>game.id),['a']);
- assert.deepEqual(searchGamesByTitle(games,'sonic'),[]);
+ assert.deepEqual(searchGames(games,'metroid').map(game=>game.id),['a']);
+ assert.deepEqual(searchGames(games,'sonic').map(game=>game.id),['d']);
+ assert.deepEqual(searchGames(games,'1991'),[]);
+ assert.deepEqual(searchGames(games,'action amiga'),[]);
 });
 test('primary genres normalize Zaparoo genre taxonomy and preserve full genre search',()=>{
  assert.equal(primaryGenre('sports-football-soccer'), 'Sports');
@@ -150,9 +153,26 @@ test('Discover categorises C64 and ZX Spectrum as 8 bit',()=>{
  assert.equal(discoverPlatform({...base,system:'Commodore 64'}),'8 bit');
  assert.equal(discoverPlatform({...base,system:'ZX Spectrum'}),'8 bit');
  assert.equal(discoverPlatform({...base,system:'Sinclair ZX Spectrum'}),'8 bit');
+ assert.equal(discoverPlatform({...base,system:'PICO-8'}),'8 bit');
+ assert.equal(discoverPlatform({...base,system:'TRS-80'}),'8 bit');
+ assert.equal(discoverPlatform({...base,system:'TRS-80 CoCo 2'}),'8 bit');
+ assert.equal(discoverPlatform({...base,system:'VTech CreatiVision'}),'8 bit');
+ assert.equal(discoverPlatform({...base,system:'Amiga'}),'16 bit');
+ assert.equal(discoverPlatform({...base,system:'Macintosh Plus'}),'16 bit');
+ assert.equal(discoverPlatform({...base,system:'Sinclair QL'}),'16 bit');
+ assert.equal(discoverPlatform({...base,system:'SuperGrafx'}),'16 bit');
+ assert.equal(discoverPlatform({...base,system:'Tutor'}),'16 bit');
+ assert.equal(discoverPlatform({...base,system:'Amiga CD32'}),'32/64 bit');
 });
 
 test('Arcade picker includes every arcade drill-down group',()=>{ const games=[{id:'cps',title:'Street Fighter II',system:'CPS 1',category:'Arcade',genre:'Fighting',developer:'Capcom',year:1991,description:''},{id:'sega',title:'Out Run',system:'Sega',category:'Arcade',genre:'Racing',developer:'Sega',year:1986,description:''},{id:'snes',title:'F-Zero',system:'SNES',category:'Consoles',genre:'Racing',developer:'Nintendo',year:1990,description:''}] as any; assert.deepEqual(filterGames(games,'','Arcade','collection',false,[],'Arcade').map(game=>game.id),['cps','sega']); assert.deepEqual(filterGames(games,'','Arcade','collection',false,[],'CPS 1').map(game=>game.id),['cps']); });
+
+test('Arcade merge keeps one core record when a generic copy survives a partial sync',()=>{
+ const shared={title:'1941 Counter Attack',category:'Arcade' as const,system:'Arcade',genre:"Shoot'em Up",developer:'Capcom',year:1990,description:''};
+ const merged=groupGenericArcadeGames([{...shared,id:'old',remoteSystemId:'arcade'},{...shared,id:'fresh',remoteSystemId:'cps1',remoteFilePath:'/media/fat/_Arcade/1941.mra'}] as any);
+ assert.deepEqual(merged.map(game=>game.id),['fresh']);
+ assert.equal(merged[0].system,'CPS 1');
+});
 
 test('Discover caps each platform category at twenty games',()=>{
  const platforms=[['Game Boy','Consoles'],['NES','Consoles'],['SNES','Consoles'],['PlayStation','Consoles'],['MAME','Arcade']] as const;

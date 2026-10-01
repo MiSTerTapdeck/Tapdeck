@@ -21,9 +21,12 @@ export function featuredRecommendation(items:Recommendation[],seedYear:number|nu
 export function discoverPlatform(game:Game):DiscoverPlatform{
  if(game.category==='Arcade')return 'Arcade';
  const name=game.system.toLowerCase();
+ // CD32 uses a later 68EC020 processor, so keep it with the 32/64-bit consoles
+ // before the wider Amiga family rule below.
+ if(/amiga ?cd32/.test(name))return '32/64 bit';
  if(/game boy|gameboy|game gear|lynx|wonderswan|neo geo pocket|pokemon mini|supervision|game ?mate|virtual boy/.test(name))return 'Handheld';
- if(/atari ?2600|atari ?5200|atari ?7800|atari ?800|(^|[^a-z])nes($|[^a-z])|master system|coleco|odyssey|intellivision|game ?(&|and) ?watch|channel ?f|vectrex|c64|commodore ?64|vic ?20|msx|zx ?spectrum|sinclair ?spectrum/.test(name))return '8 bit';
- if(/snes|super nintendo|super famicom|mega drive|genesis|sega cd|super cd|mega cd|pc engine cd|neogeo|neo geo|32x|turbografx|x68000/.test(name))return '16 bit';
+ if(/atari ?2600|atari ?5200|atari ?7800|atari ?800|(^|[^a-z])nes($|[^a-z])|master system|coleco|odyssey|intellivision|game ?(&|and) ?watch|channel ?f|vectrex|c64|commodore ?64|vic ?20|msx|zx ?spectrum|sinclair ?spectrum|pico-?8|trs-?80|coco ?2|creativision/.test(name))return '8 bit';
+ if(/amiga|macintosh plus|sinclair ?ql|snes|super nintendo|super famicom|mega drive|genesis|sega cd|super cd|mega cd|pc engine cd|supergrafx|neogeo|neo geo|32x|turbografx|x68000|tutor/.test(name))return '16 bit';
  return '32/64 bit';
 }
 

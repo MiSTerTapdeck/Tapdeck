@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {parseArtworkDirectory,parseArtworkDirectoryInChunks,matchLibretroFilename,matchLibretroFilenameInChunks,libretroSystemsFor,libretroArtworkIdentity,artworkCacheFilename,libretroArtworkUrl} from '../src/domain/libretroNaming.ts';
-import {amigaVisionCanonicalTitle,c64RunCommands,c64TapeLoadCommands,isC64TapeImage,isSpectrumTapeImage,launchRoutesFor,spectrumTapeLoadCommands,usbMountCandidates} from '../src/domain/misterRemote.ts';
+import {amigaVisionCanonicalTitle,c64RunCommands,c64TapeLoadCommands,isC64TapeImage,isSpectrumTapeImage,launchRoutesFor,mglLaunchPath,spectrumTapeLoadCommands,usbMountCandidates} from '../src/domain/misterRemote.ts';
 test('Eco Fighters resolves from a directory containing malformed percent escapes',()=>{
  const names=parseArtworkDirectory(`<a href="100% game.png">x</a><a href="Eco%20Fighters%20(USA%20940215).png">x</a>`);
  const game={title:'Eco Fighters',system:'Capcom Play II',category:'Arcade',id:'eco'} as any;
@@ -74,10 +74,18 @@ test('long ROM paths produce bounded, distinct cache filenames',()=>{
 });
 
 
-test('every system uses MiSTer Remote’s game launch endpoint',()=>{
+test('ordinary systems use MiSTer Remote’s game launch endpoint',()=>{
  assert.deepEqual(launchRoutesFor({remoteSystemId:'C64'} as any),['/games/launch']);
  assert.deepEqual(launchRoutesFor({remoteSystemId:'ZXSpectrum'} as any),['/games/launch']);
  assert.deepEqual(launchRoutesFor({remoteSystemId:'SNES'} as any),['/games/launch']);
+});
+test('CD32Vision and 0MHz DOS games use their MGL launchers',()=>{
+ const dos={title:'Big Red Racing',system:'PC (DOS)',remoteSystemId:'ao486',remoteFilePath:'/media/usb0/games/AO486/media/big red racing/big red racing.chd'} as any;
+ const cd32={title:'Alfred Chicken',system:'Amiga CD32',remoteSystemId:'cd32',remoteFilePath:'/media/usb0/games/AmigaCD32/Alfred Chicken (1993).chd'} as any;
+ assert.equal(mglLaunchPath(dos),'/media/fat/_DOS Games/Big Red Racing.mgl');
+ assert.equal(mglLaunchPath(cd32),'/media/fat/_Console/_Amiga CD32 Games/Alfred Chicken (1993).mgl');
+ assert.deepEqual(launchRoutesFor(dos),['/launch']);
+ assert.deepEqual(launchRoutesFor(cd32),['/launch']);
 });
 test('USB game paths are checked against every MiSTer USB mount without changing their game-relative path',()=>{
  const expected=Array.from({length:8},(_,index)=>`/media/usb${index}/games/SNES/3 Ninjas Kick Back (USA).sfc`);
@@ -125,6 +133,8 @@ test('readable system names resolve to their Libretro thumbnail directories',()=
  const cases:[string,string][]=[
   ['ColecoVision','Coleco - ColecoVision'],
   ['Commodore 64','Commodore - 64'],
+  ['PC (DOS)','DOS'],
+  ['Amiga CD32','Commodore - CD32'],
   ['Amstrad CPC','Amstrad - CPC'],
   ['MSX2','Microsoft - MSX2'],
   ['Sega SG-1000','Sega - SG-1000'],
