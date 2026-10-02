@@ -30,7 +30,17 @@ export function groupGenericArcadeGames(games:Game[]):Game[]{
  const retained:Game[]=[];
  for(const game of grouped){
   if(game.category!=='Arcade'){retained.push(game);continue;}
-  const key=game.title.toLocaleLowerCase().replace(/\([^)]*\)|[^a-z0-9]+/g,'');
+  const titleKey=game.title.toLocaleLowerCase().replace(/\([^)]*\)|[^a-z0-9]+/g,'');
+  const path=game.remoteFilePath?.replace(/\\/g,'/').toLocaleLowerCase();
+  const key=path?`path:${path}`:`title:${titleKey}`;
+  const genericKey=`title:${titleKey}`;
+  // Zaparoo may expose one MRA as generic Arcade and as its detected hardware.
+  // Replace only a pathless legacy generic record; different MRA files with
+  // the same game title are distinct games and must remain visible.
+  if(path){
+   const generic=arcade.get(genericKey);
+   if(generic&&generic.remoteSystemId?.toLocaleLowerCase()==='arcade'&&!generic.remoteFilePath)arcade.delete(genericKey);
+  }else if([...arcade.values()].some(item=>item.remoteFilePath&&item.title.toLocaleLowerCase().replace(/\([^)]*\)|[^a-z0-9]+/g,'')===titleKey))continue;
   const current=arcade.get(key);
   const preferCurrent=current?.remoteSystemId?.toLocaleLowerCase()!=='arcade';
   const preferNext=game.remoteSystemId?.toLocaleLowerCase()!=='arcade';

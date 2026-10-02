@@ -7,12 +7,24 @@ import {chooseIgdbRating} from '../src/domain/igdb.ts';
 import {formatRegion,parseRating,parseYear,regionFlag} from '../src/domain/gamelist.ts';
 import {discoverPlatform,featuredRecommendation,recommendGames} from '../src/domain/discover.ts';
 import {groupGenericArcadeGames} from '../src/domain/arcadeCores.ts';
+import {isPlayableGame} from '../src/domain/playable.ts';
+import {isVisibleRemoteMedia} from '../src/domain/remoteMedia.ts';
 import type {Game} from '../src/data/library';
 const seed:Game[]=[
  {id:'a',title:'Super Metroid',system:'SNES',category:'Consoles',year:1994,genre:'Platform',developer:'Nintendo',players:'1',description:''},
  {id:'b',title:'Turrican II',system:'Amiga',category:'Computers',year:1991,genre:'Action',developer:'Factor 5',players:'1',description:''},
  {id:'c',title:'Modern game',system:'SNES',category:'Consoles',year:2026,genre:'Action',developer:'Studio',players:'1',description:''},
 ];
+test('Zaparoo launch records remain visible regardless of their media extension',()=>{
+ for(const extension of ['cue','m3u','vhd','bin','chd']){
+  assert.equal(isPlayableGame({id:extension,title:'Example Game',system:'Future Console',category:'Consoles',year:null,genre:'Not listed',developer:'Not listed',players:'Not listed',description:'',remoteFilePath:`/media/usb0/games/Future Console/Example Game.${extension}`} as Game),true);
+ }
+ assert.equal(isPlayableGame({id:'test-drive',title:'Test Drive',system:'DOS',category:'Computers',year:1987,genre:'Racing',developer:'Accolade',players:'1',description:''} as Game),true);
+});
+test('a Zaparoo record without a ZapScript remains visible to MiSTer Remote launching',()=>{
+ assert.equal(isVisibleRemoteMedia({name:'New core game',path:'/media/fat/games/NewCore/New core game.img'}),true);
+ assert.equal(isVisibleRemoteMedia({name:'Missing game',path:'/media/fat/games/NewCore/Missing game.img',isMissing:true}),false);
+});
 test('search combines title and developer terms and intersects the category',()=>{
  assert.deepEqual(filterGames(seed,'  nintendo  metroid ','Consoles').map(g=>g.id),['a']);
  assert.equal(filterGames(seed,'Nintendo','Computers').length,0);
@@ -172,6 +184,15 @@ test('Arcade merge keeps one core record when a generic copy survives a partial 
  const merged=groupGenericArcadeGames([{...shared,id:'old',remoteSystemId:'arcade'},{...shared,id:'fresh',remoteSystemId:'cps1',remoteFilePath:'/media/fat/_Arcade/1941.mra'}] as any);
  assert.deepEqual(merged.map(game=>game.id),['fresh']);
  assert.equal(merged[0].system,'CPS 1');
+});
+
+test('Arcade merge keeps different MRA files with the same game title',()=>{
+ const base={title:'Tetris',category:'Arcade' as const,system:'Arcade',genre:'Puzzle',developer:'Not listed',year:1988,description:''};
+ const merged=groupGenericArcadeGames([
+  {...base,id:'atari',remoteSystemId:'atetris',remoteFilePath:'/media/fat/_Arcade/Atari Tetris.mra'},
+  {...base,id:'sega',remoteSystemId:'segasys1',remoteFilePath:'/media/fat/_Arcade/Sega Tetris.mra'},
+ ] as any);
+ assert.deepEqual(merged.map(game=>game.id),['atari','sega']);
 });
 
 test('Discover caps each platform category at twenty games',()=>{

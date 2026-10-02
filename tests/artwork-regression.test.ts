@@ -79,6 +79,11 @@ test('ordinary systems use MiSTer Remote’s game launch endpoint',()=>{
  assert.deepEqual(launchRoutesFor({remoteSystemId:'ZXSpectrum'} as any),['/games/launch']);
  assert.deepEqual(launchRoutesFor({remoteSystemId:'SNES'} as any),['/games/launch']);
 });
+test('a user-provided MGL launches through MiSTer Remote for any core',()=>{
+ const custom={title:'Custom computer game',system:'My Core',remoteSystemId:'MisterOtherMyCore',remoteFilePath:'/media/fat/games/My Core/Custom computer game.mgl'} as any;
+ assert.equal(mglLaunchPath(custom),custom.remoteFilePath);
+ assert.deepEqual(launchRoutesFor(custom),['/launch']);
+});
 test('CD32Vision and 0MHz DOS games use their MGL launchers',()=>{
  const dos={title:'Big Red Racing',system:'PC (DOS)',remoteSystemId:'ao486',remoteFilePath:'/media/usb0/games/AO486/media/big red racing/big red racing.chd'} as any;
  const cd32={title:'Alfred Chicken',system:'Amiga CD32',remoteSystemId:'cd32',remoteFilePath:'/media/usb0/games/AmigaCD32/Alfred Chicken (1993).chd'} as any;
@@ -135,6 +140,7 @@ test('readable system names resolve to their Libretro thumbnail directories',()=
   ['Commodore 64','Commodore - 64'],
   ['PC (DOS)','DOS'],
   ['Amiga CD32','Commodore - CD32'],
+  ['3DO','The 3DO Company - 3DO'],
   ['Amstrad CPC','Amstrad - CPC'],
   ['MSX2','Microsoft - MSX2'],
   ['Sega SG-1000','Sega - SG-1000'],

@@ -9,6 +9,10 @@ export function mglLaunchPath(game:LaunchGame){
  const remote=systemKey(game.remoteSystemId);
  const system=systemKey(game.system);
  const source=game.remoteFilePath?.replace(/\\\\/g,'/')??'';
+ // Zaparoo indexes a custom MGL as a first-class game. Launch that exact MGL
+ // through MiSTer Remote instead of treating it as ordinary media. This keeps
+ // user-defined launchers working for any core, including future ones.
+ if(/\.mgl$/i.test(source))return source;
  const isCd32=remote==='cd32'||remote==='amigacd32'||remote==='commodorecd32'||system.includes('cd32')||/\/games\/amigacd32\//i.test(source);
  const isDos=remote==='ao486'||remote==='dos'||remote==='pcdos'||system.includes('dos');
  if(isDos)return game.title?`/media/fat/_DOS Games/${game.title}.mgl`:undefined;
