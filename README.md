@@ -2,6 +2,12 @@
 
 Tapdeck is a native Expo app for browsing a MiSTer library from a phone. It reads the library exposed by MiSTer Remote, keeps a local copy for quick startup, fetches artwork from the configured sources, and launches the selected game through MiSTer Remote.
 
+## Install on Android
+
+Download the latest `Tapdeck-<version>.apk` from the project's [Releases](https://github.com/MiSTerTapdeck/Tapdeck/releases) page. Open the download on your Android phone and allow your browser or file manager to install apps when Android asks.
+
+Tapdeck communicates only with services on your home network. Install and start Zaparoo Core and MiSTer Remote on your MiSTer before connecting the app.
+
 ## What is in the app
 
 - Library, saved games, playlists, discovery, search, sorting, and system/category filters.
@@ -48,11 +54,20 @@ node scripts/build-arcade-core-map.mjs
 
 The first two are declared package scripts. The latter two update checked-in data used to make large collections responsive before a directory listing is fetched.
 
-## Release checks
+## Publishing an Android release
 
-Before creating a development, preview, or production Android build:
+Before publishing a release:
 
 1. Run the two checks above.
 2. Open the app and refresh the library against a real MiSTer.
 3. Verify a representative game from Arcade, console, computer, and AmigaVision libraries launches correctly.
 4. Confirm saved games, playlists, artwork caching, and Android back navigation on a physical phone.
+5. Build the signed installable APK:
+
+   ```sh
+   npx eas-cli build --platform android --profile release
+   ```
+
+6. Download the resulting APK from EAS. On GitHub, create a release tagged `v<version>` and attach it as `Tapdeck-<version>.apk`.
+
+The `development` profile is for local development. The `preview` profile remains available for private testing. Use `release` for the APK attached to GitHub Releases.
