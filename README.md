@@ -1,73 +1,98 @@
-# Tapdeck
+<p align="center">
+  <img src="./assets/tapdeck-splash.png" width="220" alt="Tapdeck" />
+</p>
 
-Tapdeck is a native Expo app for browsing a MiSTer library from a phone. It reads the library exposed by MiSTer Remote, keeps a local copy for quick startup, fetches artwork from the configured sources, and launches the selected game through MiSTer Remote.
+<h1 align="center">Tapdeck</h1>
 
-## Install on Android
+<p align="center">
+  <strong>Your MiSTer library, in your pocket.</strong><br />
+  A beautiful, fast way to browse, rediscover and launch the games you already own.
+</p>
 
-Download the latest `Tapdeck-<version>.apk` from the project's [Releases](https://github.com/MiSTerTapdeck/Tapdeck/releases) page. Open the download on your Android phone and allow your browser or file manager to install apps when Android asks.
+<p align="center">
+  <a href="https://github.com/MiSTerTapdeck/Tapdeck/releases">Download for Android</a>
+  ·
+  <a href="#getting-started">Getting started</a>
+  ·
+  <a href="#mister-setup">MiSTer setup</a>
+</p>
 
-Tapdeck communicates only with services on your home network. Install and start Zaparoo Core and MiSTer Remote on your MiSTer before connecting the app.
+## Your collection deserves better than a folder browser
 
-## What is in the app
+Tapdeck turns a MiSTer library into a tactile game binder. Browse cover art, screenshots and metadata; filter across systems and genres; make playlists; find something you have not played in years; then launch it on your MiSTer from the sofa.
 
-- Library, saved games, playlists, discovery, search, sorting, and system/category filters.
-- MiSTer connection and library refresh settings.
-- Local artwork cache, including bundled indexes for large Arcade, C64, and Spectrum collections.
-- Per-system launch routing, USB mount fallback, C64 and Spectrum autoload handling, and the AmigaVision launch route.
-- Android back handling and haptic press feedback.
+It is built for large, mixed MiSTer libraries: arcade boards, consoles, computers, CD-based systems and custom MGL launches all belong in one place.
+
+## What it does
+
+- **A library you can actually browse** — list and three-column card views, fast search, system and genre filters, sorting, favourites and Last Played.
+- **Make your own shelves** — create playlists, add games in batches, and put together a queue for any mood or hardware setup.
+- **Artwork that gets out of the way** — local artwork caching, Libretro thumbnail support and graceful fallbacks when a title has no art.
+- **Discover what to play next** — recommendations based on your library, platform groupings and cached ratings.
+- **Metadata where it helps** — game details from your MiSTer library, with optional IGDB ratings for titles that have no rating in their gamelist.
+- **Launch from the phone** — Tapdeck sends launch requests through MiSTer Remote, including direct MGL launches for systems outside the usual mappings.
+- **Made for use in the room** — haptic feedback, full-screen game cards and Android back navigation.
+
+## Getting started
+
+1. Download the latest APK from [Releases](https://github.com/MiSTerTapdeck/Tapdeck/releases).
+2. Open it on an Android phone or tablet and allow your browser or file manager to install apps when Android asks.
+3. Put the phone and MiSTer on the same home network.
+4. Open Tapdeck, enter your MiSTer’s IP address, then connect and sync the library.
+
+Tapdeck remembers the connection and keeps a local copy of the library so the binder opens quickly.
+
+## MiSTer setup
+
+Tapdeck uses two separate MiSTer services for different jobs:
+
+- **Zaparoo Core** indexes the library and supplies its paths and metadata.
+- **MiSTer Remote** performs the actual game launch requests.
+
+Install and run both before connecting Tapdeck. Tapdeck does not launch games through Zaparoo.
+
+Some additions are optional:
+
+- [AmigaVision bridge](./integrations/amigavision-bridge/package/README.md) — required only for launching directly into an AmigaVision game.
+- [IGDB metadata bridge](./integrations/igdb-metadata-bridge/README.md) — optional local helper that caches ratings for games whose gamelist has no rating.
+
+## A note on artwork and metadata
+
+Tapdeck reads the metadata already available in your MiSTer library. It can download matching artwork to the Android device, so cover art becomes faster after its first use. If a game has no metadata or artwork, it stays visible and usable.
+
+The optional IGDB bridge runs on the MiSTer. It is only used when you choose to configure it, and its rating cache stays on the MiSTer.
 
 ## Development
 
-Use Node.js 24 LTS.
+Requires Node.js 24 LTS.
 
 ```sh
 npm ci
 npm start
 ```
 
-Run the checks before making a build:
+Run these before submitting a change or making a build:
 
 ```sh
 npm run typecheck
 npm test
 ```
 
-The web preview is for layout checks only. Test MiSTer connection, launch, artwork refresh, and device gestures on an Android development build before publishing an APK.
+The web preview is useful for layout checks. Test MiSTer connection, artwork refresh, launch and gestures on a physical Android device before publishing an APK.
+
+## Building an Android APK
+
+For the signed installable release APK:
+
+```sh
+npx eas-cli build --platform android --profile release
+```
+
+For private testing, use the `preview` profile instead. Release APKs are attached to the project’s [GitHub Releases](https://github.com/MiSTerTapdeck/Tapdeck/releases) page.
 
 ## Project layout
 
-- `src/Tapdeck.tsx` — app state, navigation, filters, and views.
-- `src/components/` — reusable card, list, artwork, detail, paper, and icon components.
-- `src/domain/` — library filtering, MiSTer data, launch routing, artwork cache, metadata, playlists, and discovery.
-- `src/data/` — fallback content, arcade core mapping, and bundled artwork indexes.
-- `tests/` — launch, artwork, metadata, library, playlist, and discovery regression checks.
-- `scripts/` — repeatable maintenance utilities for sample content, artwork indexes, and the local preview.
-
-## Maintenance scripts
-
-```sh
-npm run samples
-npm run artwork-bridge
-node scripts/update-bundled-artwork-indexes.mjs
-node scripts/build-arcade-core-map.mjs
-```
-
-The first two are declared package scripts. The latter two update checked-in data used to make large collections responsive before a directory listing is fetched.
-
-## Publishing an Android release
-
-Before publishing a release:
-
-1. Run the two checks above.
-2. Open the app and refresh the library against a real MiSTer.
-3. Verify a representative game from Arcade, console, computer, and AmigaVision libraries launches correctly.
-4. Confirm saved games, playlists, artwork caching, and Android back navigation on a physical phone.
-5. Build the signed installable APK:
-
-   ```sh
-   npx eas-cli build --platform android --profile release
-   ```
-
-6. Download the resulting APK from EAS. On GitHub, create a release tagged `v<version>` and attach it as `Tapdeck-<version>.apk`.
-
-The `development` profile is for local development. The `preview` profile remains available for private testing. Use `release` for the APK attached to GitHub Releases.
+- `src/` — native app screens, components and library/launch logic.
+- `integrations/` — optional MiSTer-side helpers for AmigaVision and IGDB metadata.
+- `tests/` — regression tests for library handling, artwork, playlists, discovery and launch routing.
+- `scripts/` — maintenance tools for sample content and artwork indexes.
