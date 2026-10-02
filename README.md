@@ -17,6 +17,18 @@
   <a href="#mister-setup">MiSTer setup</a>
 </p>
 
+<p align="center">
+  <a href="./docs/screenshots/game%20list.jpeg"><img src="./docs/screenshots/game%20list.jpeg" width="180" alt="Tapdeck library list" /></a>
+  <a href="./docs/screenshots/game%20cards.jpeg"><img src="./docs/screenshots/game%20cards.jpeg" width="180" alt="Tapdeck game card grid" /></a>
+  <a href="./docs/screenshots/card%20front.jpeg"><img src="./docs/screenshots/card%20front.jpeg" width="180" alt="Tapdeck game detail card" /></a>
+  <a href="./docs/screenshots/card%20back.jpeg"><img src="./docs/screenshots/card%20back.jpeg" width="180" alt="Tapdeck game story card" /></a>
+</p>
+<p align="center">
+  <a href="./docs/screenshots/playlists.jpeg"><img src="./docs/screenshots/playlists.jpeg" width="180" alt="Tapdeck playlists" /></a>
+  <a href="./docs/screenshots/discover.jpeg"><img src="./docs/screenshots/discover.jpeg" width="180" alt="Tapdeck discover screen" /></a>
+  <a href="./docs/screenshots/settings.jpeg"><img src="./docs/screenshots/settings.jpeg" width="180" alt="Tapdeck settings" /></a>
+</p>
+
 ## Your collection deserves better than a folder browser
 
 Tapdeck turns a MiSTer library into a tactile game binder. Browse cover art, screenshots and metadata; filter across systems and genres; make playlists; find something you have not played in years; then launch it on your MiSTer from the sofa.
