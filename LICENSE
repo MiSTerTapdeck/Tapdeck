@@ -1,21 +1,58 @@
-MIT License
+Tapdeck Free Use and Distribution License, Version 1.0
 
 Copyright (c) 2026 MiSTerTapdeck contributors
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. Permission
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Subject to these terms, you may use, study, copy, modify, build, and distribute
+this software and its associated documentation (the "Software") free of
+charge. You may distribute the original Software or modified versions in
+source or compiled form, including through an app store, provided recipients
+are not charged for the Software or access to its functionality.
+
+2. No sale or paid distribution
+
+Without prior written permission from the relevant copyright holders, you
+may not sell, license for a fee, or otherwise distribute the Software or a
+modified version in exchange for payment. This includes paid app-store
+listings, subscriptions or in-app purchases granting access to its
+functionality, and inclusion in a paid software bundle. Renaming or modifying
+the Software does not remove these restrictions.
+
+These restrictions concern sale and paid distribution of the Software; they
+do not prohibit using it within a business.
+
+3. Notices and modified versions
+
+All copies or substantial portions of the Software must retain this license
+and the applicable copyright notices. When distributing a modified version,
+you must clearly state that it has been modified and must not present it as
+an official MiSTerTapdeck release. You must pass on these terms for the
+Software and may not grant recipients permission to sell or distribute it
+for payment without the written permission described above.
+
+4. Third-party material and branding
+
+This license applies only to material that the copyright holders have the
+right to license. Dependencies, game artwork, metadata, and other third-party
+material remain subject to their own rights and license terms. This license
+does not grant trademark rights or permission to claim endorsement by
+MiSTerTapdeck.
+
+5. Earlier releases
+
+This license applies to copies released under these terms. It does not
+replace or revoke permissions granted for earlier copies released under the
+MIT License or another license.
+
+6. No warranty or liability
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. TO THE MAXIMUM EXTENT
+PERMITTED BY APPLICABLE LAW, THE COPYRIGHT HOLDERS AND CONTRIBUTORS SHALL
+NOT BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM, OUT
+OF, OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
+
+This is a custom source-available license, not the MIT License or an
+OSI-approved open-source license.

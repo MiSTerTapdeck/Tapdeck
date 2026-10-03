@@ -43,7 +43,7 @@ It is built for large, mixed MiSTer libraries: arcade boards, consoles, computer
 
 Tapdeck is currently distributed as a side-loaded Android APK. If you prefer not to install a side-loaded app, please wait for a future store or independent Android repository release.
 
-The complete source is public under the [MIT License](./LICENSE). You may use, modify and redistribute the code, provided the licence notice is retained. Some game artwork and metadata originate from third-party sources and are not granted by this licence.
+The complete source is public under the [Tapdeck Free Use and Distribution License](./LICENSE). You may use, modify and share Tapdeck for free, retaining the licence notice. Selling or distributing Tapdeck or modified versions for payment requires written permission. Earlier MIT releases retain their original permissions. Some game artwork and metadata originate from third-party sources and are not granted by this licence.
 
 Tapdeck does not mount, unmount, disable, format or alter MiSTer storage. Its USB recovery only performs read-only path checks when a drive has been assigned a different `/media/usbN` slot after reboot. The exact behaviour and the optional helper changes are documented in [Storage safety](./docs/storage-safety.md).
 
