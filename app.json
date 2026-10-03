@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tapdeck",
     "slug": "tapdeck",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "scheme": "tapdeck",
     "orientation": "portrait",
     "userInterfaceStyle": "light",

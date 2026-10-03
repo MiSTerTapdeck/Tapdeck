@@ -1,8 +1,0 @@
-LAB loop
-IF EXISTS MiSTer:tapdeck-request
-  SET TITLE "`TYPE MiSTer:tapdeck-request`"
-  DELETE MiSTer:tapdeck-request
-  EXECUTE "AGS:RunQuiet/Game/$TITLE"
-ENDIF
-WAIT 1 SEC
-SKIP loop BACK

@@ -3,9 +3,7 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -13,9 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -48,12 +44,10 @@ type ratingCache struct {
 	Ratings map[string]cachedRating `json:"ratings"`
 }
 type ratingResponse struct {
-	Status   string   `json:"status"`
-	Rating   *float64 `json:"rating,omitempty"`
-	Match    string   `json:"match,omitempty"`
-	Gamelist string   `json:"gamelist,omitempty"`
-	Backup   string   `json:"backup,omitempty"`
-	Message  string   `json:"message,omitempty"`
+	Status  string   `json:"status"`
+	Rating  *float64 `json:"rating,omitempty"`
+	Match   string   `json:"match,omitempty"`
+	Message string   `json:"message,omitempty"`
 }
 type igdbGame struct {
 	Name             string   `json:"name"`
@@ -69,18 +63,12 @@ type oauthResponse struct {
 	AccessToken string `json:"access_token"`
 	ExpiresIn   int    `json:"expires_in"`
 }
-type gamePath struct {
-	Path string `xml:"path"`
-}
 type bridge struct {
 	mu      sync.Mutex
 	client  *http.Client
 	token   string
 	expires time.Time
 }
-
-var gameBlock = regexp.MustCompile(`(?s)<game(?:\s[^>]*)?>.*?</game\s*>`)
-var ratingTag = regexp.MustCompile(`(?s)<rating\s*>.*?</rating\s*>`)
 
 func main() {
 	b := &bridge{client: &http.Client{Timeout: 12 * time.Second}}
@@ -367,62 +355,6 @@ func platformMatches(game igdbGame, system string) bool {
 	}
 	return false
 }
-func findGamelist(gameFile string) (string, error) {
-	dir := filepath.Dir(filepath.Clean(gameFile))
-	for {
-		candidate := filepath.Join(dir, "gamelist.xml")
-		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
-			return candidate, nil
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir || !strings.HasPrefix(parent, "/media/") {
-			break
-		}
-		dir = parent
-	}
-	return "", errors.New("gamelist.xml not found")
-}
-func updateRating(gamelist, gameFile string, rating float64) (string, error) {
-	data, err := os.ReadFile(gamelist)
-	if err != nil {
-		return "", err
-	}
-	if err := validateXML(data); err != nil {
-		return "", fmt.Errorf("gamelist XML is invalid: %w", err)
-	}
-	relative, err := filepath.Rel(filepath.Dir(gamelist), filepath.Clean(gameFile))
-	if err != nil || strings.HasPrefix(relative, "..") {
-		return "", errors.New("game file is outside the gamelist folder")
-	}
-	wanted := "./" + filepath.ToSlash(relative)
-	found := false
-	ratingValue := strconv.FormatFloat(rating/100, 'f', 4, 64)
-	ratingValue = strings.TrimRight(strings.TrimRight(ratingValue, "0"), ".")
-	output := gameBlock.ReplaceAllStringFunc(string(data), func(block string) string {
-		var parsed gamePath
-		if xml.Unmarshal([]byte(block), &parsed) != nil || filepath.ToSlash(strings.TrimSpace(parsed.Path)) != wanted {
-			return block
-		}
-		found = true
-		if ratingTag.MatchString(block) {
-			return ratingTag.ReplaceAllString(block, "<rating>"+ratingValue+"</rating>")
-		}
-		return strings.Replace(block, "</game>", "\n    <rating>"+ratingValue+"</rating>\n  </game>", 1)
-	})
-	if !found {
-		return "", fmt.Errorf("game path %q was not found in %s", wanted, gamelist)
-	}
-	stamp := time.Now().UTC().Format("20060102-150405")
-	backup := gamelist + ".tapdeck-backup-" + stamp
-	if err := os.WriteFile(backup, data, 0644); err != nil {
-		return "", err
-	}
-	if err := atomicWrite(gamelist, []byte(output), 0644); err != nil {
-		return "", err
-	}
-	return backup, nil
-}
-
 func ratingCacheKey(path string) string {
 	return filepath.ToSlash(filepath.Clean(path))
 }
@@ -469,18 +401,6 @@ func saveCachedRating(path string, rating float64, match string) error {
 		return err
 	}
 	return os.Rename(temporary, ratingsPath)
-}
-func validateXML(data []byte) error {
-	decoder := xml.NewDecoder(bytes.NewReader(data))
-	for {
-		_, err := decoder.Token()
-		if err == io.EOF {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-	}
 }
 func atomicWrite(filename string, data []byte, mode os.FileMode) error {
 	temporary := filename + ".tapdeck-tmp"

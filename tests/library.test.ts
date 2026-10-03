@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {filterGames,genresForCategory,isVintage,parseSaved,searchGames,systemsForCategory} from '../src/domain/library.ts';
 import {cardGenre,discoverGenreKey,primaryGenre} from '../src/domain/genre.ts';
 import {parsePlaylists,reorderIds} from '../src/domain/playlists.ts';
-import {chooseIgdbRating} from '../src/domain/igdb.ts';
+import {chooseIgdbRating} from '../src/domain/igdbMatch.ts';
 import {formatRegion,parseRating,parseYear,regionFlag} from '../src/domain/gamelist.ts';
 import {discoverPlatform,featuredRecommendation,recommendGames} from '../src/domain/discover.ts';
 import {groupGenericArcadeGames} from '../src/domain/arcadeCores.ts';
