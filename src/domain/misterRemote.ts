@@ -35,7 +35,11 @@ async function launchAmigaVisionGame(value:string,title:string,signal:AbortSigna
  if(response.status===503)throw new Error('AmigaVision is still preparing its external drive. Please try again in a minute.');
  throw new Error(`AmigaVision could not queue the game (HTTP ${response.status})${detail?`: ${detail}`:''}`);
 }
-/** Retain the library-relative portion while checking the currently mounted USB slots. */
+/**
+ * Read-only recovery for a USB drive that MiSTer mounted in a different slot
+ * after a reboot. This only asks MiSTer Remote to list candidate folders; it
+ * never mounts, unmounts, disables, formats, or otherwise changes storage.
+ */
 export function usbMountCandidates(path:string){const match=path.replace(/\\/g,'/').match(/^\/media\/usb\d+\/(.+)$/i);return match?Array.from({length:8},(_,index)=>`/media/usb${index}/${match[1]}`):[path];}
 async function resolveMountedUsbPath(value:string,path:string,signal:AbortSignal){const candidates=usbMountCandidates(path);if(candidates.length===1)return path;const found=await Promise.all(candidates.map(async candidate=>{const folder=candidate.slice(0,candidate.lastIndexOf('/'));try{const response=await fetch(`${normaliseMiSTerRemoteUrl(value)}/games/view`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path:folder}),signal});if(!response.ok)return undefined;const body=await response.json() as {items?:{path?:string}[]};return body.items?.some(item=>item.path===candidate)?candidate:undefined;}catch{return undefined;}}));return found.find(Boolean)??path;}
 export function isC64TapeImage(game:Pick<Game,'remoteFilePath'|'remoteSystemId'>){return ['c64','commodore64'].includes(systemKey(game.remoteSystemId))&&/\.t64$/i.test(game.remoteFilePath??'');}

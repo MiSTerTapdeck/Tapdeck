@@ -15,6 +15,8 @@
   <a href="#getting-started">Getting started</a>
   ·
   <a href="#mister-setup">MiSTer setup</a>
+  ·
+  <a href="./docs/storage-safety.md">Storage safety</a>
 </p>
 
 <p align="center">
@@ -34,6 +36,14 @@
 Tapdeck turns a MiSTer library into a tactile game binder. Browse cover art, screenshots and metadata; filter across systems and genres; make playlists; find something you have not played in years; then launch it on your MiSTer from the sofa.
 
 It is built for large, mixed MiSTer libraries: arcade boards, consoles, computers, CD-based systems and custom MGL launches all belong in one place.
+
+## Trust, storage and source code
+
+Tapdeck is currently distributed as a side-loaded Android APK. If you prefer not to install a side-loaded app, please wait for a future store or independent Android repository release.
+
+The complete source is public under the [MIT License](./LICENSE). You may use, modify and redistribute the code, provided the licence notice is retained. Some game artwork and metadata originate from third-party sources and are not granted by this licence.
+
+Tapdeck does not mount, unmount, disable, format or alter MiSTer storage. Its USB recovery only performs read-only path checks when a drive has been assigned a different `/media/usbN` slot after reboot. The exact behaviour and the optional helper changes are documented in [Storage safety](./docs/storage-safety.md).
 
 ## What it does
 
