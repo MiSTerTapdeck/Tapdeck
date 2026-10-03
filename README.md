@@ -16,6 +16,8 @@
   ·
   <a href="#mister-setup">MiSTer setup</a>
   ·
+  <a href="./CHANGELOG.md">Changes</a>
+  ·
   <a href="./docs/storage-safety.md">Storage safety</a>
 </p>
 
@@ -54,6 +56,7 @@ Tapdeck does not mount, unmount, disable, format or alter MiSTer storage. Its US
 - **Metadata where it helps** — game details from your MiSTer library, with optional IGDB ratings for titles that have no rating in their gamelist.
 - **Launch from the phone** — Tapdeck sends launch requests through MiSTer Remote, including direct MGL launches for systems outside the usual mappings.
 - **Made for use in the room** — haptic feedback, full-screen game cards and Android back navigation.
+- **Light or dark, by choice** — switch the reading surface in Settings → Appearance. Tapdeck remembers the choice on the device.
 
 ## Getting started
 

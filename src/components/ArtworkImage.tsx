@@ -48,7 +48,7 @@ function ArtworkImageImpl({game,style,misterUrl,allowDownload=true,resizeMode='c
  },[allowDownload,artworkKey,artworkVersion,game.category,game.id,game.image,game.remoteFilePath,game.remoteMediaId,game.remotePath,game.system,game.title,misterUrl,preferSnap,priority]);
  // A recycled list or Discover cell must never retain the previous game's image.
  const displaySource=sourceKey===artworkKey?source:(optimisticSource??fallback);
- if(!displaySource)return <View style={[styles.missing,style]}><Paper opacity={.5}/><Text style={styles.missingText}>No artwork available</Text></View>;
+ if(!displaySource)return <View style={[styles.missing,style,{backgroundColor:c.card}]}><Paper opacity={.5}/><Text style={[styles.missingText,{color:c.muted}]}>No artwork available</Text></View>;
  return <Image source={displaySource} resizeMode={resizeMode} style={style} accessibilityLabel={`${game.title} artwork`} onError={()=>{setSource(placeholder);setSourceKey(artworkKey);}}/>;
 }
 
