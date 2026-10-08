@@ -1,7 +1,41 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {createLocalArtworkLookup,parseLocalArtworkManifest} from '../src/domain/localArtwork.ts';
 import {parseArtworkDirectory,parseArtworkDirectoryInChunks,matchLibretroFilename,matchLibretroFilenameInChunks,libretroSystemsFor,libretroArtworkIdentity,artworkCacheFilename,libretroArtworkUrl} from '../src/domain/libretroNaming.ts';
-import {amigaVisionCanonicalTitle,c64RunCommands,c64TapeLoadCommands,isC64TapeImage,isSpectrumTapeImage,launchRoutesFor,mglLaunchPath,spectrumTapeLoadCommands,usbMountCandidates} from '../src/domain/misterRemote.ts';
+import {amigaVisionCanonicalTitle,c64RunCommands,c64TapeLoadCommands,isC64TapeImage,isSpectrumTapeImage,launchRoutesFor,mglLaunchPath,spectrumTapeLoadCommands,usbMountCandidates,usesZaparooLauncher} from '../src/domain/misterRemote.ts';
+test('local artwork checks exact ROM names and titles in their own system only',()=>{
+ const lookup=createLocalArtworkLookup([
+  {id:'box',folder:'/media/usb0/games/SNES',name:'Super Metroid (USA)',kind:'boxart'},
+  {id:'snap',folder:'/media/usb0/games/SNES',name:'Super Metroid',kind:'snaps'},
+  {id:'other',folder:'/media/usb0/games/Genesis',name:'Super Metroid',kind:'boxart'},
+ ]);
+ const game={title:'Super Metroid',system:'SNES',remoteSystemId:'SNES',remoteFilePath:'/media/usb0/games/SNES/Super Metroid (USA).sfc'} as any;
+ assert.equal(lookup(game,'boxart')?.id,'box');
+ assert.equal(lookup(game,'snaps')?.id,'snap');
+ assert.equal(lookup({...game,title:'Super Metroid 2',remoteFilePath:'/media/usb0/games/SNES/Super Metroid 2.sfc'},'boxart'),undefined);
+ assert.equal(lookup({...game,system:'NES',remoteSystemId:'NES',remoteFilePath:'/media/usb0/games/NES/Super Metroid.nes'},'boxart'),undefined);
+});
+
+test('Jaguar and Jaguar CD artwork share both folders, prefer the actual game folder, and survive USB numbering changes',()=>{
+ const lookup=createLocalArtworkLookup([
+  {id:'jag',folder:'/media/usb0/games/Jaguar',name:'Tempest 2000',kind:'boxart'},
+  {id:'cd',folder:'/media/usb0/games/Jaguar CD',name:'Battlemorph',kind:'snaps'},
+  {id:'preferred',folder:'/media/usb3/games/Jaguar',name:'Battlemorph',kind:'boxart'},
+  {id:'alternate',folder:'/media/usb0/games/JaguarCD',name:'Battlemorph',kind:'boxart'},
+ ]);
+ const game={title:'Battlemorph',system:'Jaguar CD',remoteSystemId:'JaguarCD',remoteFilePath:'/media/usb3/games/Jaguar/Battlemorph.cdi'} as any;
+ assert.equal(lookup(game,'snaps')?.id,'cd');
+ assert.equal(lookup(game,'boxart')?.id,'preferred');
+ assert.equal(lookup({...game,title:'Tempest 2000',remoteFilePath:'/media/usb3/games/JaguarCD/Tempest 2000.j64'},'boxart')?.id,'jag');
+});
+
+test('local artwork supports arcade folders, case-insensitive names and rejects malformed manifests',()=>{
+ const lookup=createLocalArtworkLookup([{id:'arcade',folder:'/media/fat/_Arcade',name:'CADILLACS AND DINOSAURS (WORLD 930201)',kind:'snaps'}]);
+ assert.equal(lookup({title:'Cadillacs and Dinosaurs',system:'CPS 1',category:'Arcade',remoteFilePath:'/media/fat/_Arcade/Cadillacs and Dinosaurs (World 930201).mra'} as any,'snaps')?.id,'arcade');
+ assert.deepEqual(parseLocalArtworkManifest(null),[]);
+ assert.deepEqual(parseLocalArtworkManifest({artwork:[{id:'../../secret',folder:'x',name:'x',kind:'boxart'}]}),[]);
+});
+
 test('Eco Fighters resolves from a directory containing malformed percent escapes',()=>{
  const names=parseArtworkDirectory(`<a href="100% game.png">x</a><a href="Eco%20Fighters%20(USA%20940215).png">x</a>`);
  const game={title:'Eco Fighters',system:'Capcom Play II',category:'Arcade',id:'eco'} as any;
@@ -78,6 +112,15 @@ test('ordinary systems use MiSTer Remote’s game launch endpoint',()=>{
  assert.deepEqual(launchRoutesFor({remoteSystemId:'C64'} as any),['/games/launch']);
  assert.deepEqual(launchRoutesFor({remoteSystemId:'ZXSpectrum'} as any),['/games/launch']);
  assert.deepEqual(launchRoutesFor({remoteSystemId:'SNES'} as any),['/games/launch']);
+});
+test('Neo Geo Pocket systems use Zaparoo because MiSTer Remote cannot launch them',()=>{
+ const mono={title:'Neo Turf Masters',system:'Neo Geo Pocket',remoteSystemId:'NeoGeoPocket',remoteFilePath:'/media/usb0/games/NGP/Neo Turf Masters.ngp'} as any;
+ const colour={title:'SNK vs. Capcom',system:'Neo Geo Pocket Color',remoteSystemId:'NeoGeoPocketColor',remoteFilePath:'/media/usb0/games/NGPC/SNK vs. Capcom.ngc'} as any;
+ assert.equal(usesZaparooLauncher(mono),true);
+ assert.equal(usesZaparooLauncher(colour),true);
+ assert.deepEqual(launchRoutesFor(mono),['/api/v0.1']);
+ assert.deepEqual(launchRoutesFor(colour),['/api/v0.1']);
+ assert.equal(usesZaparooLauncher({system:'SNES',remoteSystemId:'SNES'} as any),false);
 });
 test('a user-provided MGL launches through MiSTer Remote for any core',()=>{
  const custom={title:'Custom computer game',system:'My Core',remoteSystemId:'MisterOtherMyCore',remoteFilePath:'/media/fat/games/My Core/Custom computer game.mgl'} as any;

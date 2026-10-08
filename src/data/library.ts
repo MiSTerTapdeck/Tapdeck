@@ -5,7 +5,7 @@ export type Category = 'All' | 'Consoles' | 'Computers' | 'Arcade';
 export interface Game {
   id: string; title: string; system: string; category: Exclude<Category,'All'>;
   year: number | null; developer: string; genre: string; players: string; rating?: number; ratingSource?:string; region?: string;
-  description: string; image?: ImageSourcePropType; scene?: ImageSourcePropType; source?: string; packKey?: string; remotePath?: string; remoteFilePath?:string; remoteSystemId?:string; remoteMediaId?:number; remoteHasArtwork?:boolean; localArtworkSystem?: string; localThumbnail?: string; localMix?: string;
+  description: string; image?: ImageSourcePropType; scene?: ImageSourcePropType; source?: string; packKey?: string; remotePath?: string; remoteFilePath?:string; remoteSystemId?:string; remoteMediaId?:number; remoteHasArtwork?:boolean; libraryAddedAt?:number; localArtworkSystem?: string; localThumbnail?: string; localMix?: string;
 }
 const images: Record<string,ImageSourcePropType> = {
   'super-metroid':require('../../assets/artwork/super-metroid.jpg'),

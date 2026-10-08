@@ -1,6 +1,6 @@
 import type { Category, Game } from '../data/library';
 import {primaryGenre} from './genre.ts';
-export type SortOrder='collection'|'title'|'year'|'oldest'|'rating';
+export type SortOrder='title'|'year'|'oldest'|'rating'|'added';
 export function systemsForCategory(games:Game[],category:Category):string[] {
   if(category!=='Consoles'&&category!=='Computers')return [];
   return [...new Set(games.filter(g=>g.category===category).map(g=>g.system))];
@@ -14,7 +14,7 @@ function matchesSearchTerms(game:Game,terms:string[]):boolean{
   const searchable=[game.title,game.developer].join(' ').toLocaleLowerCase();
   return terms.every(term=>searchable.includes(term));
 }
-export function filterGames(games:Game[], query:string, category:Category, sort:SortOrder='collection', savedOnly=false, saved:string[]=[], system:string|null=null, genre:string|null=null):Game[] {
+export function filterGames(games:Game[], query:string, category:Category, sort:SortOrder='title', savedOnly=false, saved:string[]=[], system:string|null=null, genre:string|null=null):Game[] {
   const terms=query.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
   // "Arcade" is the complete arcade collection. Named arcade systems remain
   // drill-down filters, but the Arcade picker item must not narrow to only
@@ -24,15 +24,17 @@ export function filterGames(games:Game[], query:string, category:Category, sort:
   if(sort==='year') result.sort((a,b)=>(b.year??-1)-(a.year??-1)||a.title.localeCompare(b.title));
   if(sort==='oldest') result.sort((a,b)=>(a.year??Infinity)-(b.year??Infinity)||a.title.localeCompare(b.title));
   if(sort==='rating') result.sort((a,b)=>(b.rating??-1)-(a.rating??-1)||a.title.localeCompare(b.title));
+  if(sort==='added') result.sort((a,b)=>(b.libraryAddedAt??0)-(a.libraryAddedAt??0)||a.title.localeCompare(b.title));
   return result;
 }
-export function searchGames(games:Game[],query:string,sort:SortOrder='collection'):Game[]{
+export function searchGames(games:Game[],query:string,sort:SortOrder='title'):Game[]{
   const terms=query.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
   const result=games.filter(game=>matchesSearchTerms(game,terms));
   if(sort==='title')result.sort((a,b)=>a.title.localeCompare(b.title));
   if(sort==='year')result.sort((a,b)=>(b.year??-1)-(a.year??-1)||a.title.localeCompare(b.title));
   if(sort==='oldest')result.sort((a,b)=>(a.year??Infinity)-(b.year??Infinity)||a.title.localeCompare(b.title));
   if(sort==='rating')result.sort((a,b)=>(b.rating??-1)-(a.rating??-1)||a.title.localeCompare(b.title));
+  if(sort==='added')result.sort((a,b)=>(b.libraryAddedAt??0)-(a.libraryAddedAt??0)||a.title.localeCompare(b.title));
   return result;
 }
 // Release age controls paper wear. Play history never changes a card's condition.

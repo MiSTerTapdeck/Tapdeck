@@ -5,7 +5,7 @@ import {cardGenre,discoverGenreKey,primaryGenre} from '../src/domain/genre.ts';
 import {parsePlaylists,reorderIds} from '../src/domain/playlists.ts';
 import {chooseIgdbRating} from '../src/domain/igdbMatch.ts';
 import {formatRegion,parseRating,parseYear,regionFlag} from '../src/domain/gamelist.ts';
-import {discoverPlatform,featuredRecommendation,recommendGames} from '../src/domain/discover.ts';
+import {discoverPlatform,discoverShowcase,recommendGames} from '../src/domain/discover.ts';
 import {groupGenericArcadeGames} from '../src/domain/arcadeCores.ts';
 import {isPlayableGame} from '../src/domain/playable.ts';
 import {isVisibleRemoteMedia} from '../src/domain/remoteMedia.ts';
@@ -36,6 +36,11 @@ test('saved filter intersects search without mutating input order',()=>{
 test('rating sort uses only imported local ratings',()=>{
  assert.deepEqual(filterGames([{...seed[0],rating:60},{...seed[1],rating:90},{...seed[2]}],'','All','rating').map(game=>game.id),['b','a','c']);
 });
+test('date added to library puts recently discovered games first',()=>{
+ const dated=[{...seed[0],libraryAddedAt:100},{...seed[1],libraryAddedAt:300},{...seed[2],libraryAddedAt:200}];
+ assert.deepEqual(filterGames(dated,'','All','added').map(game=>game.id),['b','c','a']);
+ assert.deepEqual(searchGames(dated,'','added').map(game=>game.id),['b','c','a']);
+});
 test('release age controls condition; unknown years are not treated as old',()=>{
  assert.equal(isVintage(1994,2026),true);assert.equal(isVintage(2026,2026),false);
  assert.equal(isVintage(null,2026),false);assert.equal(isVintage(2006,2026),true);
@@ -55,15 +60,15 @@ test('system options are unique and belong only to the chosen family',()=>{
  assert.deepEqual(systemsForCategory(seed,'Arcade'),[]);
 });
 test('system filter intersects category, search and saved status',()=>{
- assert.deepEqual(filterGames(seed,'Nintendo','Consoles','collection',true,['a','b'],'SNES').map(g=>g.id),['a']);
- assert.deepEqual(filterGames(seed,'','Consoles','collection',false,[],'Amiga'),[]);
- assert.deepEqual(filterGames(seed,'','Computers','collection',false,[],'Amiga').map(g=>g.id),['b']);
+ assert.deepEqual(filterGames(seed,'Nintendo','Consoles','title',true,['a','b'],'SNES').map(g=>g.id),['a']);
+ assert.deepEqual(filterGames(seed,'','Consoles','title',false,[],'Amiga'),[]);
+ assert.deepEqual(filterGames(seed,'','Computers','title',false,[],'Amiga').map(g=>g.id),['b']);
 });
 test('genre options respect the active family and genre filter intersects other filters',()=>{
  assert.deepEqual(genresForCategory(seed,'Consoles'),['Action','Platform']);
  assert.deepEqual(genresForCategory(seed,'Computers'),['Action']);
- assert.deepEqual(filterGames(seed,'','Consoles','collection',false,[],null,'Platform').map(g=>g.id),['a']);
- assert.deepEqual(filterGames(seed,'Nintendo','Consoles','collection',true,['a'],null,'Platform').map(g=>g.id),['a']);
+ assert.deepEqual(filterGames(seed,'','Consoles','title',false,[],null,'Platform').map(g=>g.id),['a']);
+ assert.deepEqual(filterGames(seed,'Nintendo','Consoles','title',true,['a'],null,'Platform').map(g=>g.id),['a']);
 });
 test('global and playlist search match the same title and developer fields as system lists',()=>{
  const games=[...seed,{...seed[1],id:'d',title:'Unrelated game',developer:'Sonic Team'}];
@@ -79,7 +84,7 @@ test('primary genres normalize Zaparoo genre taxonomy and preserve full genre se
  assert.equal(primaryGenre('beatem-upbeatem-up'), 'Beat ’em Up');
  assert.equal(primaryGenre('build-and-managementsimulation'), 'Simulation');
  assert.deepEqual(genresForCategory([{...seed[0],genre:'sports-football-soccer'}],'Consoles'),['Sports']);
- assert.deepEqual(filterGames([{...seed[0],genre:'sports-football-soccer'}],'','Consoles','collection',false,[],null,'Sports').map(g=>g.title),['Super Metroid']);
+ assert.deepEqual(filterGames([{...seed[0],genre:'sports-football-soccer'}],'','Consoles','title',false,[],null,'Sports').map(g=>g.title),['Super Metroid']);
 });
 test('playlist storage removes invalid games and keeps a stable game order',()=>{
  const parsed=parsePlaylists('[{"id":"weekend","title":" Weekend picks ","gameIds":["b","a","b","gone"],"createdAt":12},{"id":"weekend","title":"Duplicate","gameIds":[]}]',['a','b']);
@@ -112,19 +117,78 @@ test('Discover uses primary genres except for sports, shooter and racing sub-gen
  assert.equal(discoverGenreKey('racing,-drivingracing-fpv'), 'racing:fpv');
  assert.equal(discoverGenreKey('action-adventureaction'), 'action');
 });
+test('Discover tops up a thin specialist genre with its broader genre',()=>{
+ const base={...seed[0],genre:'shooter-verticalshooter'};
+ const sparse=[{...base,id:'seed'}, {...base,id:'vertical'}, {...base,id:'horizontal',genre:'shooter-horizontalshooter'}];
+ const sparseResults=recommendGames(sparse,['seed']);
+ assert.ok(sparseResults.some(item=>item.game.id==='horizontal'));
+ assert.equal(sparseResults.find(item=>item.game.id==='horizontal')?.reason,'more shooter games');
+ const full=[{...base,id:'seed'},...Array.from({length:10},(_,index)=>({...base,id:`vertical-${index}`})),{...base,id:'horizontal',genre:'shooter-horizontalshooter'}];
+ assert.ok(!recommendGames(full,['seed']).some(item=>item.game.id==='horizontal'));
+});
 
 test('Sega CD belongs in the 16-bit Discover category',()=>{
  assert.equal(discoverPlatform({...seed[0],system:'Sega CD'}),'16 bit');
 });
 
-test('featured Discover recommendation prefers the seed game decade when available',()=>{
- const items=[
-  {game:{...seed[1],year:2004},score:5,reason:''},
-  {game:{...seed[2],year:1998},score:4,reason:''},
- ];
- assert.equal(featuredRecommendation(items,1994)?.game.id,'c');
- assert.equal(featuredRecommendation(items,1984)?.game.id,'b');
+test('Discover sorts rating bands including cached ratings, keeps gamelist priority and excludes cached low ratings',()=>{
+ const base={...seed[0],genre:'Action'};
+ const games=[{...base,id:'seed'},...[
+  ['unrated',undefined],['sixties',60],['seventies',79],['eighties',80],['nineties',100],['cached',undefined],['cached-low',undefined],['gamelist',65],
+ ].map(([id,rating])=>({...base,id:String(id),title:String(id),rating:rating as number|undefined}))];
+ const cached=new Map([['cached',94],['cached-low',59],['gamelist',99]]);
+ const results=recommendGames(games,['seed'],[],cached);
+ assert.equal(results.length,7);
+ assert.deepEqual(results.slice(0,2).map(item=>item.game.id).sort(),['cached','nineties']);
+ assert.deepEqual(results.slice(2,4).map(item=>item.game.id),['eighties','seventies']);
+ assert.equal(results.find(item=>item.game.id==='gamelist')?.game.rating,65);
+ assert.equal(results.at(-1)?.game.id,'unrated');
+ assert.ok(!results.some(item=>item.game.id==='cached-low'));
 });
+
+test('Discover shuffles within a band instead of alphabetising and does not reshuffle the showcase',t=>{
+ const games=[{...seed[0],id:'seed'},...['Alpha','Bravo','Charlie','Delta'].map(title=>({...seed[0],id:title,title,rating:85}))];
+ t.mock.method(Math,'random',()=>0);
+ const first=recommendGames(games,['seed']);
+ assert.deepEqual(first.map(item=>item.game.title),['Bravo','Charlie','Delta','Alpha']);
+ t.mock.restoreAll();
+ t.mock.method(Math,'random',()=>0.999);
+ const second=recommendGames(games,['seed']);
+ assert.notDeepEqual(first,second);
+ const ready=new Set(first.map(item=>item.game.id));
+ assert.deepEqual(discoverShowcase(first,ready),discoverShowcase(first,ready));
+});
+
+test('Discover showcase has artwork and five distinct systems, including the lead; all other games stay in the list',()=>{
+ const systems=['SNES','SNES','Amiga','NES','Mega Drive','PlayStation','Game Boy'];
+ const items=systems.map((system,index)=>({game:{...seed[0],id:String(index),system,rating:90-index},score:1,reason:''}));
+ const ready=new Set(['0','1','2','3','4','5']);
+ const result=discoverShowcase(items,ready);
+ const top=[result.lead!,...result.rowGames];
+ assert.equal(top.length,5);
+ assert.equal(new Set(top.map(item=>item.game.system)).size,5);
+ assert.ok(top.every(item=>ready.has(item.game.id)));
+ assert.deepEqual(result.more.map(item=>item.game.id),['1','6']);
+ assert.equal(top.length+result.more.length,items.length);
+ const scarce=discoverShowcase(items,new Set(['0','1','2']));
+ assert.equal(scarce.rowGames.length,2);
+ assert.deepEqual([scarce.lead!,...scarce.rowGames].map(item=>item.game.id),['0','2','1']);
+ assert.equal(scarce.more.length,4);
+ const none=discoverShowcase(items,new Set());
+ assert.equal(none.lead,undefined);
+ assert.deepEqual(none.more,items);
+});
+test('Discover fills five artwork slots when a filtered category has fewer than five systems',()=>{
+ const items=['PlayStation','PlayStation','3DO','PlayStation','3DO','PlayStation','3DO'].map((system,index)=>({game:{...seed[0],id:String(index),system,rating:90-index},score:1,reason:''}));
+ const ready=new Set(['0','1','2','3','4','5']);
+ const result=discoverShowcase(items,ready);
+ const top=[result.lead!,...result.rowGames];
+ assert.deepEqual(top.map(item=>item.game.id),['0','2','1','3','4']);
+ assert.equal(new Set(top.map(item=>item.game.id)).size,5);
+ assert.ok(top.every(item=>ready.has(item.game.id)));
+ assert.deepEqual(result.more.map(item=>item.game.id),['5','6']);
+});
+
 test('cards show the cleaned primary and recognised sub-genre',()=>{
  assert.equal(cardGenre('sports-skiingsports'),'Sports — Skiing');
  assert.equal(cardGenre('shootem-up-verticalshootem-up'),'Shoot’em Up — Vertical');
@@ -177,7 +241,7 @@ test('Discover categorises C64 and ZX Spectrum as 8 bit',()=>{
  assert.equal(discoverPlatform({...base,system:'Amiga CD32'}),'32/64 bit');
 });
 
-test('Arcade picker includes every arcade drill-down group',()=>{ const games=[{id:'cps',title:'Street Fighter II',system:'CPS 1',category:'Arcade',genre:'Fighting',developer:'Capcom',year:1991,description:''},{id:'sega',title:'Out Run',system:'Sega',category:'Arcade',genre:'Racing',developer:'Sega',year:1986,description:''},{id:'snes',title:'F-Zero',system:'SNES',category:'Consoles',genre:'Racing',developer:'Nintendo',year:1990,description:''}] as any; assert.deepEqual(filterGames(games,'','Arcade','collection',false,[],'Arcade').map(game=>game.id),['cps','sega']); assert.deepEqual(filterGames(games,'','Arcade','collection',false,[],'CPS 1').map(game=>game.id),['cps']); });
+test('Arcade picker includes every arcade drill-down group',()=>{ const games=[{id:'cps',title:'Street Fighter II',system:'CPS 1',category:'Arcade',genre:'Fighting',developer:'Capcom',year:1991,description:''},{id:'sega',title:'Out Run',system:'Sega',category:'Arcade',genre:'Racing',developer:'Sega',year:1986,description:''},{id:'snes',title:'F-Zero',system:'SNES',category:'Consoles',genre:'Racing',developer:'Nintendo',year:1990,description:''}] as any; assert.deepEqual(filterGames(games,'','Arcade','title',false,[],'Arcade').map(game=>game.id),['sega','cps']); assert.deepEqual(filterGames(games,'','Arcade','title',false,[],'CPS 1').map(game=>game.id),['cps']); });
 
 test('Arcade merge keeps one core record when a generic copy survives a partial sync',()=>{
  const shared={title:'1941 Counter Attack',category:'Arcade' as const,system:'Arcade',genre:"Shoot'em Up",developer:'Capcom',year:1990,description:''};

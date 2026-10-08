@@ -77,6 +77,9 @@ func main() {
 	mux.HandleFunc("/configure", b.configure)
 	mux.HandleFunc("/rating", b.rating)
 	mux.HandleFunc("/ratings", b.ratings)
+	artwork := newArtworkCatalog()
+	mux.HandleFunc("/artwork", artwork.index)
+	mux.HandleFunc("/artwork/file", artwork.image)
 	log.Printf("Tapdeck IGDB metadata bridge listening on %s", listenAddress)
 	log.Fatal(http.ListenAndServe(listenAddress, cors(mux)))
 }

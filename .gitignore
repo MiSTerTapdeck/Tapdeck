@@ -84,8 +84,16 @@ skills-lock.json
 
 /integrations/amigavision-bridge/.go-cache/
 /integrations/igdb-metadata-bridge/.gocache/
+/integrations/igdb-metadata-bridge/.go-cache/
+/.go-cache/
 
 /.tapdeck-validation-export/
+
+# Local social exports and paper-texture previews
+/docs/social/
+/docs/card-*-preview.png
+/docs/card-age-previews.png
+/scripts/build-social-images.mjs
 
 # Retained local design assets; not used by the app
 /assets/android-icon-background.png
@@ -96,6 +104,7 @@ skills-lock.json
 /assets/card-stock/1980s.png
 /assets/card-stock/1990s.png
 /assets/card-stock/2000s.png
+/assets/paper-card-1990s.png
 /assets/fallbacks/action.png
 /assets/fallbacks/adventure-card.png
 /assets/fallbacks/adventure.png

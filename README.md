@@ -51,7 +51,7 @@ Tapdeck does not mount, unmount, disable, format or alter MiSTer storage. Its US
 
 - **A library you can actually browse** — list and three-column card views, fast search, system and genre filters, sorting, favourites and Last Played.
 - **Make your own shelves** — create playlists, add games in batches, and put together a queue for any mood or hardware setup.
-- **Artwork that gets out of the way** — local artwork caching, Libretro thumbnail support and graceful fallbacks when a title has no art.
+- **Artwork that gets out of the way** — on-device artwork caching, Libretro thumbnail support and graceful fallbacks when a title has no art.
 - **Discover what to play next** — recommendations based on your library, platform groupings and cached ratings.
 - **Metadata where it helps** — game details from your MiSTer library, with optional IGDB ratings for titles that have no rating in their gamelist.
 - **Launch from the phone** — Tapdeck sends launch requests through MiSTer Remote, including direct MGL launches for systems outside the usual mappings.
@@ -79,13 +79,15 @@ Install and run both before connecting Tapdeck. Tapdeck does not launch games th
 Some additions are optional:
 
 - [AmigaVision bridge](./integrations/amigavision-bridge/package/README.md) — required only for launching directly into an AmigaVision game.
-- [IGDB metadata bridge](./integrations/igdb-metadata-bridge/README.md) — optional local helper that caches ratings for games whose gamelist has no rating.
+- [IGDB metadata and artwork bridge](./integrations/igdb-metadata-bridge/README.md) — optional local helper that caches missing ratings. It can also read your system folders' `boxart` and `snaps` images when you explicitly enable that setting in Tapdeck.
 
 ## A note on artwork and metadata
 
 Tapdeck reads the metadata already available in your MiSTer library. It can download matching artwork to the Android device, so cover art becomes faster after its first use. If a game has no metadata or artwork, it stays visible and usable.
 
 The optional IGDB bridge runs on the MiSTer. It is only used when you choose to configure it, and its rating cache stays on the MiSTer.
+
+With the updated helper installed, you can opt in to local artwork folders in **Settings → Artwork cache**. Tapdeck then fills missing artwork from `boxart` and `snaps` folders alongside your games. Existing phone-cached artwork stays first, followed by your local images, then Libretro. Jaguar and Jaguar CD check both system folders. Local artwork works without IGDB credentials; see the [folder layout and setup](./integrations/igdb-metadata-bridge/README.md#local-boxart-and-snaps).
 
 ## Development
 

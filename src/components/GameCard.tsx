@@ -9,6 +9,7 @@ import {Icon} from './Icon';
 import {ArtworkImage} from './ArtworkImage';
 function GameCardImpl({game,index,saved,onPress,artworkUrl,allowDownload=true,compact=false,theme}:{game:Game;index:number;saved:boolean;onPress:()=>void;artworkUrl?:string;allowDownload?:boolean;compact?:boolean;theme?:ThemeMode}) {
  const vintage=isVintage(game.year);
+ const dark=theme==='dark';
  const subtitle=`${game.system} · ${game.year??'Year unknown'}${!vintage?'  ·  Recent release':''}`;
  const [released,setReleased]=React.useState(false);
  const releaseTimer=React.useRef<ReturnType<typeof setTimeout>|null>(null);
@@ -19,8 +20,8 @@ function GameCardImpl({game,index,saved,onPress,artworkUrl,allowDownload=true,co
   releaseTimer.current=setTimeout(()=>{setReleased(false);onPress();},40);
  };
  return <Pressable accessibilityRole="button" accessibilityLabel={`Open ${game.title}, ${game.system}, ${game.year??'year unknown'}${saved?', saved':''}`} onPress={handlePress} testID={`card-${game.id}`} style={{flex:1}}>
-  <View style={[s.card,compact&&s.compactCard,{backgroundColor:vintage?c.card:c.paper,borderColor:c.line},released&&s.released]}>
-  {!compact&&<Paper opacity={vintage?.8:.14}/>}
+  <View style={[s.card,compact&&s.compactCard,{backgroundColor:dark?'#27221D':c.paper,borderColor:dark?'#756A5E':c.line},released&&s.released]}>
+  {!compact&&<Paper card opacity={vintage?.8:.14}/>}
   {!compact&&<View style={s.top}><Text style={[s.serial,{color:c.muted}]}>{String(index+1).padStart(3,'0')}</Text><Text style={[s.system,{color:c.orange}]}>{game.system.toUpperCase()}</Text></View>}
   <View style={[s.art,compact&&s.compactArt,isDarkTheme()&&s.darkArt]}><ArtworkImage game={game} misterUrl={artworkUrl} allowDownload={allowDownload} priority="visible" theme={theme} style={s.image}/></View>
   {!compact&&<View style={s.cardFoot}><Text style={[s.cardGenre,{color:c.muted}]} numberOfLines={1}>{cardGenre(game.genre)==='Not listed'?'COLLECTION':cardGenre(game.genre).toUpperCase()}</Text>{saved?<Icon name="bookmark" filled size={13} color={c.orange}/>:<Text style={[s.year,{color:c.muted}]}>{game.year??'—'}</Text>}</View>}

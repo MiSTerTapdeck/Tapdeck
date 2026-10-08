@@ -1,9 +1,10 @@
 import {Image,StyleSheet,View} from 'react-native';
 import Svg,{Path,Line} from 'react-native-svg';
 import {isDarkTheme,paper} from '../theme';
-export function Paper({opacity=.45}:{opacity?:number}) {
+const cardPaper=require('../../assets/paper-card-1980s.png');
+export function Paper({opacity=.45,card=false}:{opacity?:number;card?:boolean}) {
  if(isDarkTheme())return null;
- return <View style={[StyleSheet.absoluteFill,{pointerEvents:'none',overflow:'hidden'}]} accessible={false}><Image source={paper} resizeMode="cover" style={[StyleSheet.absoluteFill,{width:'100%',height:'100%',opacity}]} accessibilityIgnoresInvertColors accessible={false}/></View>;
+ return <View style={[StyleSheet.absoluteFill,{pointerEvents:'none',overflow:'hidden'}]} accessible={false}><Image source={card?cardPaper:paper} resizeMode="cover" style={[StyleSheet.absoluteFill,{width:'100%',height:'100%',opacity}]} accessibilityIgnoresInvertColors accessible={false}/></View>;
 }
 type CardEra='seventies'|'eighties'|'nineties'|'noughties'|'clean';
 function eraFor(year:number|null|undefined):CardEra {if(!year||year>=2010)return 'clean';if(year<1980)return 'seventies';if(year<1990)return 'eighties';if(year<2000)return 'nineties';return 'noughties';}

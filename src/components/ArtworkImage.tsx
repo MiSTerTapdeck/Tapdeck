@@ -1,7 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import {Image,StyleSheet,Text,View,type ImageSourcePropType,type ImageStyle,type StyleProp} from 'react-native';
 import {fallbackThumbnail,type Game} from '../data/library';
-import {optimisticLibretroArtworkSource,readCachedLibretroSnap,readCachedLibretroThumbnail,readLibretroSnap,readLibretroThumbnail,subscribeToArtwork,libretroArtworkIdentity,libretroSnapArtworkIdentity} from '../domain/libretro';
+import {optimisticLibretroArtworkSource,readCachedLibretroSnap,readCachedLibretroThumbnail,readLibretroSnap,readLibretroThumbnail,subscribeToArtwork,libretroArtworkIdentity,libretroSnapArtworkIdentity,refreshLocalArtwork} from '../domain/libretro';
 import {fonts,palette as c,type ThemeMode} from '../theme';
 import {Paper} from './Paper';
 
@@ -17,9 +17,10 @@ function ArtworkImageImpl({game,style,misterUrl,allowDownload=true,resizeMode='c
  const [source,setSource]=useState<ImageSourcePropType|undefined>(optimisticSource??fallback);
  const [sourceKey,setSourceKey]=useState(artworkKey);
  const [artworkVersion,setArtworkVersion]=useState(0);
- useEffect(()=>subscribeToArtwork(id=>{if(id===libretroArtworkIdentity(game)||id===libretroSnapArtworkIdentity(game))setArtworkVersion(version=>version+1);}),[game.id,game.system,game.remoteSystemId,game.remoteMediaId,game.remoteFilePath,game.remotePath]);
+ useEffect(()=>subscribeToArtwork(id=>{if(id==='local-artwork'||id===libretroArtworkIdentity(game)||id===libretroSnapArtworkIdentity(game))setArtworkVersion(version=>version+1);}),[game.id,game.system,game.remoteSystemId,game.remoteMediaId,game.remoteFilePath,game.remotePath]);
  useEffect(()=>{
   let active=true;
+  if(allowDownload)void refreshLocalArtwork(game,()=>!active).catch(()=>{});
 
   let published=false;
   const publish=(value:ImageSourcePropType|undefined)=>{if(active&&value){published=true;setSource(value);setSourceKey(artworkKey);onResolved?.(value);return true;}return false;};

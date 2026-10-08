@@ -1,6 +1,8 @@
 import * as FileSystem from 'expo-file-system/legacy';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {ImageSourcePropType} from 'react-native';
 import type {Game} from '../data/library';
+import {createLocalArtworkLookup,localArtworkBaseUrl,parseLocalArtworkManifest,type LocalArtworkEntry,type LocalArtworkKind} from './localArtwork';
 import {parseArtworkDirectoryInChunks,artworkCacheFilename,legacyLibretroArtworkIdentity,libretroArtworkIdentity,libretroArtworkUrl,libretroSnapArtworkIdentity,libretroTitleArtworkIdentity,libretroSystemsFor,matchLibretroFilenameInChunks,type LibretroArtworkKind} from './libretroNaming';
 export {libretroArtworkIdentity,libretroSnapArtworkIdentity,libretroTitleArtworkIdentity,libretroSystemsFor} from './libretroNaming';
 const indexes=new Map<string,string[]>(); const indexPending=new Map<string,Promise<string[]>>(); const ROOT='https://thumbnails.libretro.com';
@@ -20,6 +22,92 @@ function queueArtworkWork<T>(job:()=>Promise<T>,urgent=false):Promise<T>{return 
 const artworkListeners=new Set<(id:string)=>void>();
 export function subscribeToArtwork(listener:(id:string)=>void){artworkListeners.add(listener);return()=>{artworkListeners.delete(listener);};}
 function announceArtwork(id:string){for(const listener of artworkListeners)listener(id);}
+
+let localArtworkHost='';
+let localLookup=createLocalArtworkLookup([]);
+let localManifestGeneration=0;
+let localManifestPending:Promise<void>|undefined;
+let localArtworkEnabled=false;
+const localDownloads=new Map<string,Promise<ImageSourcePropType|undefined>>();
+const failedLocalDownloads=new Map<string,number>();
+const localCacheID=(entry:LocalArtworkEntry)=>`mister-artwork:${localArtworkHost}:${entry.folder}:${entry.kind}:${entry.name.toLowerCase()}`;
+const localKind=(kind:LibretroArtworkKind):LocalArtworkKind|undefined=>kind==='Named_Boxarts'?'boxart':kind==='Named_Snaps'?'snaps':undefined;
+
+// One small background manifest fetch per connection/refresh, never per game.
+// The saved manifest also allows downloaded MiSTer artwork to work offline.
+export function setLocalArtworkEnabled(enabled:boolean){
+ localArtworkEnabled=enabled;
+ if(!enabled){
+  localManifestGeneration+=1;
+  localArtworkHost='';
+  localLookup=createLocalArtworkLookup([]);
+  localManifestPending=undefined;
+  announceArtwork('local-artwork');
+ }
+}
+export function configureLocalArtwork(misterUrl:string){
+ if(!localArtworkEnabled)return Promise.resolve();
+ const pending=loadLocalArtworkManifest(misterUrl);localManifestPending=pending;
+ void pending.finally(()=>{if(localManifestPending===pending)localManifestPending=undefined;});
+ return pending;
+}
+async function loadLocalArtworkManifest(misterUrl:string){
+ const generation=++localManifestGeneration;
+ let host='';try{host=misterUrl.trim()?localArtworkBaseUrl(misterUrl):'';}catch{}
+ if(host!==localArtworkHost){localArtworkHost=host;localLookup=createLocalArtworkLookup([]);}
+ if(!host)return;
+ const key=`tapdeck.local-artwork.v1:${host}`;
+ const publish=(entries:LocalArtworkEntry[])=>{if(generation!==localManifestGeneration)return;localLookup=createLocalArtworkLookup(entries);announceArtwork('local-artwork');};
+ try{const saved=await AsyncStorage.getItem(key);if(saved)publish(parseLocalArtworkManifest(JSON.parse(saved)));}catch{}
+ const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),2500);
+ try{
+  const response=await fetch(`${host}/artwork`,{signal:controller.signal});
+  if(!response.ok)return; // Older or absent optional helpers keep normal Libretro behavior.
+  const entries=parseLocalArtworkManifest(await response.json());
+  if(generation!==localManifestGeneration)return;
+  publish(entries);await AsyncStorage.setItem(key,JSON.stringify({artwork:entries}));
+ }catch{}finally{clearTimeout(timer);}
+}
+
+async function cachedMisterArtwork(game:Game,kind:LocalArtworkKind){
+ if(!localArtworkEnabled)return;
+ const entry=localLookup(game,kind);return entry?cachedLocalSource(localCacheID(entry)):undefined;
+}
+
+async function readMisterArtwork(game:Game,kind:LocalArtworkKind,shouldCancel?:()=>boolean):Promise<ImageSourcePropType|undefined>{
+ if(!localArtworkEnabled)return;
+ // Existing downloads always win. Local folders only fill missing artwork.
+ const existing=kind==='boxart'?await validCachedSource(libretroArtworkIdentity(game),legacyLibretroArtworkIdentity(game)):await validCachedSource(libretroSnapArtworkIdentity(game),legacySnapIdentity(game));
+ if(existing)return existing;
+ const entry=localLookup(game,kind);if(!entry||!localArtworkHost||shouldCancel?.())return;
+ const host=localArtworkHost;const id=localCacheID(entry);
+ const cached=await cachedLocalSource(id);if(cached)return cached;
+ if(Date.now()-(failedLocalDownloads.get(id)??0)<60000)return;
+ const pending=localDownloads.get(id);if(pending)return pending;
+ const request=queueDownload(async()=>{
+  if(shouldCancel?.())return;
+  const url=`${host}/artwork/file?id=${entry.id}`;const target=localUri(id);
+  if(!target){webArtworkCache.set(id,url);return {uri:url};}
+  await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory+'tapdeck-libretro/',{intermediates:true}).catch(()=>{});
+  const temporary=`${target}.download`;
+  try{
+   const result=await downloadArtwork(url,temporary,shouldCancel,3000);
+   if(result?.status!==200)throw new Error('Local artwork unavailable');
+   await FileSystem.moveAsync({from:temporary,to:target});
+   webArtworkCache.set(id,target);
+   if(host===localArtworkHost)announceArtwork(kind==='boxart'?libretroArtworkIdentity(game):libretroSnapArtworkIdentity(game));
+   return {uri:target};
+  }catch{if(!shouldCancel?.())failedLocalDownloads.set(id,Date.now());return undefined;}
+  finally{await FileSystem.deleteAsync(temporary,{idempotent:true}).catch(()=>{});}
+ });
+ localDownloads.set(id,request);try{return await request;}finally{localDownloads.delete(id);}
+}
+
+// Visible views can fill missing art in the background without replacing cached files.
+export async function refreshLocalArtwork(game:Game,shouldCancel?:()=>boolean){
+ if(!localArtworkEnabled)return;
+ await Promise.all([readMisterArtwork(game,'boxart',shouldCancel),readMisterArtwork(game,'snaps',shouldCancel)]);
+}
 // These collections dominate first-look artwork time. Their filename indexes are
 // shipped with Tapdeck, so matching starts immediately even on a fresh install.
 // Artwork files themselves remain on-demand downloads in the device cache.
@@ -37,11 +125,11 @@ function bundledIndex(dir:string,kind:LibretroArtworkKind):string[]|undefined{
  }
 }
 async function index(dir:string,kind:LibretroArtworkKind){const k=`${dir}:${kind}`;if(indexes.has(k))return indexes.get(k)!;const bundled=bundledIndex(dir,kind);if(bundled?.length){indexes.set(k,bundled);return bundled;}const pending=indexPending.get(k);if(pending)return pending;const request=(async()=>{const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),INDEX_TIMEOUT_MS);try{const response=await fetch(`${ROOT}/${encodeURIComponent(dir)}/${kind}/`,{signal:controller.signal});if(!response.ok)throw new Error(`Libretro index ${response.status}`);const html=await response.text();const names=await parseArtworkDirectoryInChunks(html);if(!names.length)throw new Error("Empty artwork directory: "+dir+"/"+kind);indexes.set(k,names);return names;}finally{clearTimeout(timeout);}})();indexPending.set(k,request);try{return await request;}finally{indexPending.delete(k);}}
-async function downloadArtwork(url:string,target:string,shouldCancel?:()=>boolean){
+async function downloadArtwork(url:string,target:string,shouldCancel?:()=>boolean,timeoutMs=DOWNLOAD_TIMEOUT_MS){
  if(shouldCancel?.())return;
  const task=FileSystem.createDownloadResumable(url,target);activeDownloadTasks.add(task);
  let timeout:ReturnType<typeof setTimeout>|undefined;
- try{return await Promise.race([task.downloadAsync(),new Promise<never>((_,reject)=>{timeout=setTimeout(()=>{void task.cancelAsync().catch(()=>{});reject(new Error('Libretro artwork download timed out'));},DOWNLOAD_TIMEOUT_MS);})]);}
+ try{return await Promise.race([task.downloadAsync(),new Promise<never>((_,reject)=>{timeout=setTimeout(()=>{void task.cancelAsync().catch(()=>{});reject(new Error('Artwork download timed out'));},timeoutMs);})]);}
  finally{if(timeout)clearTimeout(timeout);activeDownloadTasks.delete(task);}
 }
 // Cancelling a batch stops transfers already under way as well as queued work.
@@ -56,7 +144,7 @@ async function cachedLocalSource(id:string):Promise<ImageSourcePropType|undefine
 async function read(game:Game,kind:LibretroArtworkKind,id:string,shouldCancel?:()=>boolean,urgent=false){
  if(shouldCancel?.())return;
  const existing=artworkPending.get(id);if(existing)return existing;
- const request=(async()=>{const cached=await cachedLocalSource(id);if(cached)return cached;
+ const request=(async()=>{const cached=await cachedLocalSource(id);if(cached)return cached;const kindOnDisk=localKind(kind);if(localArtworkEnabled&&kindOnDisk){await localManifestPending;const local=await readMisterArtwork(game,kindOnDisk,shouldCancel);if(local)return local;}
  if(shouldCancel?.())return;const config=libretroSystemsFor(game);if(!config)return;return queueArtworkWork(async()=>{if(shouldCancel?.())return;const target=localUri(id);for(const dir of config.directories){try{if(shouldCancel?.())return;const filename=await matchLibretroFilenameInChunks(game,await index(dir,kind));if(!filename)continue;const url=libretroArtworkUrl(dir,kind,filename);if(!target){webArtworkCache.set(id,url);announceArtwork(id);return {uri:url};}await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory+'tapdeck-libretro/',{intermediates:true}).catch(()=>{});const result=await queueDownload(()=>downloadArtwork(url,target,shouldCancel));if(result?.status===200){
     webArtworkCache.set(id,target);announceArtwork(id);
     return {uri:target};
@@ -72,12 +160,16 @@ export function optimisticLibretroArtworkSource(game:Game,preferSnap=false):Imag
  const id=preferSnap?libretroSnapArtworkIdentity(game):libretroArtworkIdentity(game);
  const target=localUri(id);return target?{uri:target}:undefined;
 }
-export const readCachedLibretroThumbnail=(game:Game)=>validCachedSource(libretroArtworkIdentity(game),legacyLibretroArtworkIdentity(game));
+export const readCachedLibretroThumbnail=async(game:Game)=>(await validCachedSource(libretroArtworkIdentity(game),legacyLibretroArtworkIdentity(game)))??cachedMisterArtwork(game,'boxart');
 export const readLibretroThumbnail=(game:Game,urgent=false,shouldCancel?:()=>boolean)=>read(game,'Named_Boxarts',libretroArtworkIdentity(game),shouldCancel,urgent);
-export const readCachedLibretroSnap=(game:Game)=>validCachedSource(libretroSnapArtworkIdentity(game),legacySnapIdentity(game));
+export const readCachedLibretroSnap=async(game:Game)=>(await validCachedSource(libretroSnapArtworkIdentity(game),legacySnapIdentity(game)))??cachedMisterArtwork(game,'snaps');
 export async function hasCachedLibretroArtwork(game:Game):Promise<boolean>{
+ // Discover chooses its featured games before the visible-image jobs begin.
+ // A verified MiSTer artwork entry is just as suitable as an already-downloaded
+ // Libretro file: once selected, the existing visible job fetches it on demand.
+ await localManifestPending?.catch(()=>{});
  const [boxart,snap]=await Promise.all([readCachedLibretroThumbnail(game),readCachedLibretroSnap(game)]);
- return !!(boxart||snap||game.image);
+ return !!(boxart||snap||game.image||localLookup(game,'boxart')||localLookup(game,'snaps'));
 }
 export const readLibretroSnap=(game:Game,urgent=false,shouldCancel?:()=>boolean)=>read(game,'Named_Snaps',libretroSnapArtworkIdentity(game),shouldCancel,urgent);
 export const readCachedLibretroTitle=(game:Game)=>validCachedSource(libretroTitleArtworkIdentity(game));
@@ -85,6 +177,7 @@ export const readLibretroTitle=(game:Game)=>read(game,'Named_Titles',libretroTit
 // The library list owns visible-artwork scheduling. This keeps downloads tied to
 // items the user can currently see instead of relying on recycled cell effects.
 export async function ensureVisibleLibretroArtwork(game:Game,shouldCancel?:()=>boolean,urgent=false):Promise<ImageSourcePropType|undefined>{
+ void refreshLocalArtwork(game,shouldCancel).catch(()=>{});
  const [cachedBox,cachedSnap]=await Promise.all([readCachedLibretroThumbnail(game),readCachedLibretroSnap(game)]);
  if(cachedBox||cachedSnap)return cachedBox??cachedSnap;
  // Visible lists call this in screen order. Keep it on the normal FIFO queue so
@@ -100,13 +193,14 @@ export async function getLibretroArtworkSystemStatus(records:Game[]):Promise<Rec
  const entries=new Set<string>();const root=FileSystem.documentDirectory?`${FileSystem.documentDirectory}tapdeck-libretro/`:undefined;
  if(root)try{(await FileSystem.readDirectoryAsync(root)).forEach(entry=>entries.add(entry));}catch{}
  const has=(id:string)=>entries.has(artworkCacheFilename(id));const result:Record<string,SystemArtworkCacheStatus>={};
- for(const game of records){const status=result[game.system]??{total:0,boxarts:0,snaps:0,complete:0};status.total+=1;const box=has(libretroArtworkIdentity(game))||has(legacyLibretroArtworkIdentity(game));const snap=has(libretroSnapArtworkIdentity(game))||has(legacySnapIdentity(game));if(box)status.boxarts+=1;if(snap)status.snaps+=1;if(box&&snap)status.complete+=1;result[game.system]=status;}
+ for(const game of records){const status=result[game.system]??{total:0,boxarts:0,snaps:0,complete:0};status.total+=1;const localBox=localLookup(game,'boxart');const localSnap=localLookup(game,'snaps');const box=!!localBox&&has(localCacheID(localBox))||has(libretroArtworkIdentity(game))||has(legacyLibretroArtworkIdentity(game));const snap=!!localSnap&&has(localCacheID(localSnap))||has(libretroSnapArtworkIdentity(game))||has(legacySnapIdentity(game));if(box)status.boxarts+=1;if(snap)status.snaps+=1;if(box&&snap)status.complete+=1;result[game.system]=status;}
  return result;
 }
 export async function batchDownloadLibretro(records:Game[],systems:string[],progress?:(done:number,total:number)=>void,control?:BatchArtworkControl):Promise<BatchArtworkResult&{cancelled:boolean;skipped:number}>{
  const items=records.filter(game=>systems.includes(game.system));
  let cursor=0;let done=0;let available=0;let unmatched=0;let skipped=0;
  const worker=async()=>{while(!control?.isCancelled()){const game=items[cursor++];if(!game)return;
+   await refreshLocalArtwork(game,control?.isCancelled);
    const [cachedBox,cachedSnap]=await Promise.all([readCachedLibretroThumbnail(game),readCachedLibretroSnap(game)]);if(cachedBox&&cachedSnap){skipped+=1;available+=1;done+=1;progress?.(done,items.length);continue;}
    if(control?.isCancelled())return;const [box,snap]=await Promise.all([cachedBox??read(game,'Named_Boxarts',libretroArtworkIdentity(game),control?.isCancelled).catch(()=>undefined),cachedSnap??read(game,'Named_Snaps',libretroSnapArtworkIdentity(game),control?.isCancelled).catch(()=>undefined)]);
    if(control?.isCancelled())return;
@@ -130,6 +224,7 @@ export async function clearLibretroArtworkCache():Promise<void>{
 export async function clearLibretroArtworkForGames(records:Game[]):Promise<void>{
  const ids=new Set<string>();
  for(const game of records){
+  for(const kind of ['boxart','snaps'] as const){const local=localLookup(game,kind);if(local)ids.add(localCacheID(local));}
   ids.add(libretroArtworkIdentity(game));ids.add(legacyLibretroArtworkIdentity(game));
   ids.add(libretroSnapArtworkIdentity(game));ids.add(legacySnapIdentity(game));
   ids.add(libretroTitleArtworkIdentity(game));

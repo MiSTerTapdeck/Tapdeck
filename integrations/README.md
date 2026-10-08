@@ -3,7 +3,7 @@
 Tapdeck includes two optional MiSTer-side helpers:
 
 - `amigavision-bridge/package` launches individual AmigaVision titles.
-- `igdb-metadata-bridge/package` looks up and caches missing IGDB ratings.
+- `igdb-metadata-bridge/package` looks up and caches missing IGDB ratings. It can also serve local `boxart`/`snaps` folders if you explicitly enable that optional setting in Tapdeck. Local artwork does not require IGDB credentials.
 
 The only prebuilt executables retained in this repository are the current MiSTer ARM installer payloads in those two `package` folders. Their SHA-256 hashes are listed in [SHA256SUMS](./SHA256SUMS).
 

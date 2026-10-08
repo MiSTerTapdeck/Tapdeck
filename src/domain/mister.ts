@@ -121,7 +121,12 @@ async function waitForIndexing(url:string,onProgress:(progress:LibraryMaintenanc
   if(database?.indexing){
    sawIndexing=true;
    onProgress({stage:'indexing',message:database.currentStepDisplay??'Updating the MiSTer media database…',current:database.currentStep,total:database.totalSteps});
-  }else if(sawIndexing||attempt>=2)return;
+  // media.generate returns before Zaparoo necessarily exposes its indexing
+  // state. Give the worker a few seconds to start before treating an idle
+  // status as a completed scan; otherwise a Full Refresh can read yesterday's
+  // catalogue and miss newly added games.
+  }else if(sawIndexing||attempt>=6)return;
+  else onProgress({stage:'indexing',message:'Waiting for Zaparoo to begin updating its media database…'});
   await pause(maintenancePollIntervalMs);
  }
  throw new Error('Updating the MiSTer media database took too long.');
