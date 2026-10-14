@@ -1,6 +1,6 @@
 # Changes
 
-## Unreleased
+## 1.0.3
 
 - Added an arcade-version picker for games with more than one installed MRA. Tapdeck groups the available Default, Alternative and MeatCores choices so the preferred version can be launched from the game card.
 - Added optional TATE metadata support. With the MiSTer-side TATE bridge installed, vertically oriented arcade games are marked in game lists after a library refresh.

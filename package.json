@@ -1,6 +1,6 @@
 {
   "name": "tapdeck",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "main": "index.ts",
   "dependencies": {
     "@expo-google-fonts/bodoni-moda": "^0.4.2",
