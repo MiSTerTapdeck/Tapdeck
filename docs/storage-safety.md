@@ -10,5 +10,6 @@ The optional MiSTer helpers make narrowly-scoped changes:
 
 - The AmigaVision helper writes the selected title to AmigaVision's existing `games/Amiga/shared/ags_boot` request file, copies its own executable to `/media/fat/Scripts`, and adds one labelled start block to `/media/fat/linux/user-startup.sh`.
 - The IGDB helper copies its own executable to `/media/fat/Scripts`, stores its configuration and rating cache under `/media/fat/Tapdeck`, and adds one labelled start block to `/media/fat/linux/user-startup.sh`.
+- The TATE metadata helper copies its own executable to `/media/fat/Scripts` and adds one labelled start block to `/media/fat/linux/user-startup.sh`. It only reads arcade MRA rotation metadata; it never edits an MRA, core, game or display setting.
 
-Both helper packages include an uninstall script that removes their executable and labelled startup block. Neither helper mounts or changes an SD card, USB drive, HDD, partition table or filesystem.
+All helper packages include an uninstall script that removes their executable and labelled startup block. None of them mount or change an SD card, USB drive, HDD, partition table or filesystem.

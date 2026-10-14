@@ -4,11 +4,17 @@ export const PRIMARY_GENRES=[
  'Action','Adventure','Adults','Beat ’em Up','Board Game','Casino','Casual Game',
  'Compilation','Dancing','Demo','Educational','Fighting','Fishing','Horse Racing',
  'Hunting','Lightgun Shooter','Mahjong','Music and Dancing','Pinball','Platform',
- 'Playing Cards','Puzzle','Quiz','Racing','Role-playing Game','Shoot’em Up','Shooter',
+ 'Maze','Playing Cards','Puzzle','Quiz','Racing','Role-playing Game','Run and Gun','Shoot’em Up','Shooter',
  'Simulation','Sports','Strategy','Tactical RPG','Thinking','Various',
 ] as const;
 
 function compactGenre(value:string|undefined|null){return (value??'').toLocaleLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'');}
+
+// Keep unfamiliar source genres visible instead of quietly filing them under
+// "Various". This is mainly for new MiSTer Arcade Database genre families.
+function readableGenre(value:string):string {
+ return value.replace(/[_/]+/g,' ').replace(/\s+/g,' ').trim().replace(/\b\w/g,letter=>letter.toLocaleUpperCase());
+}
 
 // Zaparoo's genre tags often join repeated terms together, for example
 // "sports-skiingsports". Match the leading semantic term and fold variants
@@ -28,14 +34,22 @@ export function primaryGenre(value:string|undefined|null):string {
  if(/^(fighterscrolling|runandjump|shooterscrolling)/.test(key))return 'Platform';
  if(/^(equalize|fall|glide|throw)/.test(key))return 'Puzzle';
  if(/^(english|japanesequiz)/.test(key))return 'Quiz';
- if(/^(diagonalshootemup|horizontalshootemup|verticalshootemup)/.test(key))return 'Shoot’em Up';
- if(/^(fps|missilecommand|spaceinvaders|thirdperson|runandgun|shooterhorizontal|shootervehicle)/.test(key))return 'Shooter';
+ if(/^(shmup|diagonalshootemup|horizontalshootemup|verticalshootemup)/.test(key))return 'Shoot’em Up';
+ // Arcade Database commonly prefixes this with "Shooter". It remains its own
+ // primary genre rather than being folded into the broad Shooter family.
+ if(/run(?:and|n)?gun/.test(key))return 'Run and Gun';
+ if(/^(fps|missilecommand|spaceinvaders|thirdperson|shooterhorizontal|shootervehicle)/.test(key))return 'Shooter';
  if(/^(lifesimulation|scifisimulation|vehiclesimulation)/.test(key))return 'Simulation';
  if(/^(baseball|basketball|boxing|cycling|football|golf|hockey|multisports|pool|rugby|skiing|swimming|tennis|wrestling)/.test(key))return 'Sports';
  if(/^(tacticalrpg)/.test(key))return 'Tactical RPG';
  if(/^(actionrpg|dungeoncrawlerrpg|japaneserpg|partybasedrpg|roleplayinggame)/.test(key))return 'Role-playing Game';
  if(/^horseracing/.test(key))return 'Horse Racing';
- if(/^(motorcyclerace|racing)/.test(key))return 'Racing';
+ if(/^(motorcyclerace|racing|driving)/.test(key))return 'Racing';
+ if(/^maze/.test(key))return 'Maze';
+ if(/^multigame/.test(key))return 'Compilation';
+ if(/^ballandpaddle/.test(key))return 'Action';
+ if(/^tabletop/.test(key))return 'Board Game';
+ if(/^electromechanical/.test(key))return 'Simulation';
  if(/^beatemup/.test(key))return 'Beat ’em Up';
  if(/^(asiaticboardgame|boardgame|othello|renju|shougi)/.test(key))return 'Board Game';
  if(/^mahjong/.test(key))return 'Mahjong';
@@ -64,7 +78,7 @@ export function primaryGenre(value:string|undefined|null):string {
  if(/^sports/.test(key))return 'Sports';
  if(/^strategy/.test(key))return 'Strategy';
  if(/^thinking/.test(key))return 'Thinking';
- return 'Various';
+ return readableGenre(raw);
 }
 
 const discoverSubgenres={
@@ -77,8 +91,12 @@ const discoverSubgenres={
 // high-volume families below keep their specific discipline so skiing does not
 // become every sport game, for example.
 export function discoverGenreKey(value:string|undefined|null):string {
+ const rawKey=compactGenre(value);
+ // Keep both labels available to browse, but let Discover recognise the
+ // arcade "Brawler" family as the console/computer Beat 'em Up equivalent.
+ if(/^(beatemup|brawler)/.test(rawKey))return 'beat-em-up';
  const primary=primaryGenre(value);if(primary!=='Sports'&&primary!=='Shooter'&&primary!=='Racing')return primary.toLocaleLowerCase();
- const key=compactGenre(value);const subgenre=discoverSubgenres[primary].find(item=>key.includes(item));
+ const subgenre=discoverSubgenres[primary].find(item=>rawKey.includes(item));
  return `${primary.toLocaleLowerCase()}:${subgenre??'general'}`;
 }
 

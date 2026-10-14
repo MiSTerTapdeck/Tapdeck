@@ -6,9 +6,10 @@ import {parsePlaylists,reorderIds} from '../src/domain/playlists.ts';
 import {chooseIgdbRating} from '../src/domain/igdbMatch.ts';
 import {formatRegion,parseRating,parseYear,regionFlag} from '../src/domain/gamelist.ts';
 import {discoverPlatform,discoverShowcase,recommendGames} from '../src/domain/discover.ts';
-import {groupGenericArcadeGames} from '../src/domain/arcadeCores.ts';
+import {arcadeLaunchVariantLabel,groupGenericArcadeGames,isArcadeAlternativePath} from '../src/domain/arcadeCores.ts';
 import {isPlayableGame} from '../src/domain/playable.ts';
 import {isVisibleRemoteMedia} from '../src/domain/remoteMedia.ts';
+import {isMiSTerUnavailable} from '../src/domain/misterRemote.ts';
 import type {Game} from '../src/data/library';
 const seed:Game[]=[
  {id:'a',title:'Super Metroid',system:'SNES',category:'Consoles',year:1994,genre:'Platform',developer:'Nintendo',players:'1',description:''},
@@ -21,9 +22,24 @@ test('Zaparoo launch records remain visible regardless of their media extension'
  }
  assert.equal(isPlayableGame({id:'test-drive',title:'Test Drive',system:'DOS',category:'Computers',year:1987,genre:'Racing',developer:'Accolade',players:'1',description:''} as Game),true);
 });
+test('only a network failure is treated as an unavailable MiSTer',()=>{
+ assert.equal(isMiSTerUnavailable(new Error('Could not reach the MiSTer launch service.')),true);
+ assert.equal(isMiSTerUnavailable(new Error('MiSTer Remote could not return to its menu (HTTP 500).')),false);
+});
 test('a Zaparoo record without a ZapScript remains visible to MiSTer Remote launching',()=>{
  assert.equal(isVisibleRemoteMedia({name:'New core game',path:'/media/fat/games/NewCore/New core game.img'}),true);
  assert.equal(isVisibleRemoteMedia({name:'Missing game',path:'/media/fat/games/NewCore/Missing game.img',isMissing:true}),false);
+});
+test('arcade launch variants identify the standard, MeatCores and alternatives paths',()=>{
+ assert.equal(arcadeLaunchVariantLabel('/media/fat/_Arcade/The Simpsons.mra'),'Default');
+ assert.equal(arcadeLaunchVariantLabel('/media/fat/_Arcade/_MeatCores/The Simpsons.mra'),'MeatCores');
+ assert.equal(arcadeLaunchVariantLabel('/media/fat/_Arcade/_alternatives/_The Simpsons/The Simpsons.mra'),'Alternative');
+});
+test('arcade alternative paths distinguish normal and MeatCores variants',()=>{
+ assert.equal(isArcadeAlternativePath('/media/fat/_Arcade/The Simpsons.mra'),false);
+ assert.equal(isArcadeAlternativePath('/media/fat/_Arcade/_MeatCores/The Simpsons.mra'),false);
+ assert.equal(isArcadeAlternativePath('/media/fat/_Arcade/_alternatives/_The Simpsons/The Simpsons (4 Players).mra'),true);
+ assert.equal(isArcadeAlternativePath('/media/fat/_Arcade/_MeatCores/_alternatives/_The Simpsons/The Simpsons (4 Players).mra'),true);
 });
 test('search combines title and developer terms and intersects the category',()=>{
  assert.deepEqual(filterGames(seed,'  nintendo  metroid ','Consoles').map(g=>g.id),['a']);
@@ -82,7 +98,19 @@ test('primary genres normalize Zaparoo genre taxonomy and preserve full genre se
  assert.equal(primaryGenre('racing,-drivingracing-fpv'), 'Racing');
  assert.equal(primaryGenre('action-rpgrole-playing-game'), 'Role-playing Game');
  assert.equal(primaryGenre('beatem-upbeatem-up'), 'Beat ’em Up');
+ assert.equal(primaryGenre('brawler'), 'Brawler');
  assert.equal(primaryGenre('build-and-managementsimulation'), 'Simulation');
+ assert.equal(primaryGenre('Maze - Collect'), 'Maze');
+ assert.equal(primaryGenre('Driving - 1st Person'), 'Racing');
+ assert.equal(primaryGenre('MultiGame - Compilation'), 'Compilation');
+ assert.equal(primaryGenre('Tabletop - Board Games'), 'Board Game');
+ assert.equal(primaryGenre('A New Arcade Family'), 'A New Arcade Family');
+ assert.equal(primaryGenre('SHMUP'), 'Shoot’em Up');
+ assert.equal(primaryGenre('Run and Gun'), 'Run and Gun');
+ assert.equal(primaryGenre('Run Gun'), 'Run and Gun');
+ assert.equal(primaryGenre('Run n Gun'), 'Run and Gun');
+ assert.equal(primaryGenre("Run n' Gun"), 'Run and Gun');
+ assert.equal(primaryGenre('Shooter - Run and Gun'), 'Run and Gun');
  assert.deepEqual(genresForCategory([{...seed[0],genre:'sports-football-soccer'}],'Consoles'),['Sports']);
  assert.deepEqual(filterGames([{...seed[0],genre:'sports-football-soccer'}],'','Consoles','title',false,[],null,'Sports').map(g=>g.title),['Super Metroid']);
 });
@@ -112,10 +140,12 @@ test('Discover uses primary genres except for sports, shooter and racing sub-gen
  assert.equal(discoverGenreKey('sports-skiingsports'), 'sports:skiing');
  assert.equal(discoverGenreKey('sports-football-soccersports'), 'sports:footballsoccer');
  assert.notEqual(discoverGenreKey('sports-skiingsports'),discoverGenreKey('sports-football-soccersports'));
- assert.equal(discoverGenreKey('shooter-run-and-gunshooter'), 'shooter:runandgun');
+ assert.equal(discoverGenreKey('shooter-run-and-gunshooter'), 'run and gun');
  assert.notEqual(discoverGenreKey('shooter-run-and-gunshooter'),discoverGenreKey('shooter-horizontalshooter'));
  assert.equal(discoverGenreKey('racing,-drivingracing-fpv'), 'racing:fpv');
  assert.equal(discoverGenreKey('action-adventureaction'), 'action');
+ assert.equal(discoverGenreKey('brawler'),discoverGenreKey('beatem-upbeatem-up'));
+ assert.equal(primaryGenre('brawler'),'Brawler');
 });
 test('Discover tops up a thin specialist genre with its broader genre',()=>{
  const base={...seed[0],genre:'shooter-verticalshooter'};
@@ -242,6 +272,16 @@ test('Discover categorises C64 and ZX Spectrum as 8 bit',()=>{
 });
 
 test('Arcade picker includes every arcade drill-down group',()=>{ const games=[{id:'cps',title:'Street Fighter II',system:'CPS 1',category:'Arcade',genre:'Fighting',developer:'Capcom',year:1991,description:''},{id:'sega',title:'Out Run',system:'Sega',category:'Arcade',genre:'Racing',developer:'Sega',year:1986,description:''},{id:'snes',title:'F-Zero',system:'SNES',category:'Consoles',genre:'Racing',developer:'Nintendo',year:1990,description:''}] as any; assert.deepEqual(filterGames(games,'','Arcade','title',false,[],'Arcade').map(game=>game.id),['sega','cps']); assert.deepEqual(filterGames(games,'','Arcade','title',false,[],'CPS 1').map(game=>game.id),['cps']); });
+
+test('Arcade MRA mapping overrides a broad remote system grouping',()=>{
+ const [game]=groupGenericArcadeGames([{id:'alex',title:'Alex Kidd The Lost Stars',system:'Namco',category:'Arcade',remoteSystemId:'namco',remoteFilePath:'/media/fat/_Arcade/Alex Kidd The Lost Stars (set 2, World, S16A) [No Protection].mra',genre:'Platform',developer:'Sega',year:1986,description:''}] as any);
+ assert.equal(game.system,'Sega');
+});
+
+test('Sega System 16 is not captured by the Namco System 1 matcher',()=>{
+ const [game]=groupGenericArcadeGames([{id:'system16',title:'Test',system:'System 16',category:'Arcade',remoteSystemId:'System 16',genre:'Platform',developer:'Sega',year:1986,description:''}] as any);
+ assert.equal(game.system,'Sega');
+});
 
 test('Arcade merge keeps one core record when a generic copy survives a partial sync',()=>{
  const shared={title:'1941 Counter Attack',category:'Arcade' as const,system:'Arcade',genre:"Shoot'em Up",developer:'Capcom',year:1990,description:''};

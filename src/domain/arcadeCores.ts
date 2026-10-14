@@ -2,6 +2,13 @@ import type {Game} from '../data/library';
 import {arcadeCpsByMraName,arcadeManufacturerByMraName} from '../data/arcadeCoreMap.ts';
 
 const groups=['Capcom','Irem','Jaleco','Namco','Sega','Taito'] as const;
+export function arcadeLaunchVariantLabel(path:string){
+ const normal=path.replace(/\\/g,'/').toLocaleLowerCase();
+ if(normal.includes('/_arcade/_meatcores/'))return 'MeatCores';
+ if(normal.includes('/_arcade/_alternatives/'))return 'Alternative';
+ return 'Default';
+}
+export function isArcadeAlternativePath(path:string){return /\/_arcade\/(?:_meatcores\/)?_alternatives\//i.test(path.replace(/\\/g,'/'));}
 function groupForSystem(value?:string){
  const system=(value??'').toLocaleLowerCase();
  if(system.includes('neogeo'))return 'Neo Geo MVS';
@@ -11,8 +18,8 @@ function groupForSystem(value?:string){
  if(/capcom|\bzn\d/.test(system))return 'Capcom';
  if(/irem|\bm(?:72|90|92|107)\b/.test(system))return 'Irem';
  if(/jaleco|megasys/.test(system))return 'Jaleco';
- if(/namco|system(?:1|11|12|22)/.test(system))return 'Namco';
- if(/sega|stv/.test(system))return 'Sega';
+ if(/namco|\bsystem\s*(?:1|11|12|22)\b/.test(system))return 'Namco';
+ if(/sega|\bst[- ]?v\b|\bsystem\s*(?:e|8|16[abc]?|18|24|32)\b|\b[xyz] board\b|\bmodel\s*[123]\b/.test(system))return 'Sega';
  return groups.find(group=>system.includes(group.toLocaleLowerCase()));
 }
 function groupForMra(path?:string){
@@ -23,7 +30,9 @@ function groupForMra(path?:string){
 export function groupGenericArcadeGames(games:Game[]):Game[]{
  const grouped=games.map(game=>{
   if(game.category!=='Arcade')return game;
-  const group=groupForSystem(game.remoteSystemId)??groupForMra(game.remoteFilePath);
+  // The MRA filename identifies the actual arcade board more precisely than a
+  // broad system label supplied by the remote catalogue.
+  const group=groupForMra(game.remoteFilePath)??groupForSystem(game.remoteSystemId);
   return {...game,system:group??'Arcade'};
  });
  const arcade=new Map<string,Game>();

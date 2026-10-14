@@ -22,7 +22,7 @@
       ],
       "package": "com.anonymous.tapdeck",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/tapdeck-splash.png",
+        "foregroundImage": "./assets/tapdeck-icon-foreground.png",
         "backgroundColor": "#F6EBD7"
       },
       "backgroundColor": "#F6EBD7"
@@ -30,7 +30,7 @@
     "web": {
       "name": "Tapdeck — Binder preview"
     },
-    "icon": "./assets/tapdeck-splash.png",
+    "icon": "./assets/tapdeck-icon.png",
     "extra": {
       "eas": {
         "projectId": "9db8a196-fd04-41b9-81d9-4a2498823b9b"

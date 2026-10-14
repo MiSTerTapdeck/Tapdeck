@@ -60,6 +60,7 @@ skills-lock.json
 
 # Local build and recovery work
 /.expo-android-export/
+/.expo-export-check/
 /.npm-cache-*/
 /ARTWORK-PIVOT-PLAN.md
 /TapDeck Useful Info.txt

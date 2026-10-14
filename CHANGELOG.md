@@ -1,5 +1,13 @@
 # Changes
 
+## Unreleased
+
+- Added an arcade-version picker for games with more than one installed MRA. Tapdeck groups the available Default, Alternative and MeatCores choices so the preferred version can be launched from the game card.
+- Added optional TATE metadata support. With the MiSTer-side TATE bridge installed, vertically oriented arcade games are marked in game lists after a library refresh.
+- Expanded the genre normalisation used by filters and cards, including SHMUP, Run and Gun, Maze, Driving and several Arcade Database labels.
+- Discover now treats Brawler and Beat ’em Up as related gameplay families while retaining their separate names in lists, cards and genre filters.
+- Improved the Android adaptive icon so the Tapdeck paper field fills the launcher icon.
+
 ## 1.0.2
 
 - Added an optional local-artwork fallback. With the updated MiSTer helper installed, Tapdeck can use `boxart` and `snaps` folders beside games when no phone-cached artwork exists. It is off by default and can be disabled at any time in Settings → Artwork cache.

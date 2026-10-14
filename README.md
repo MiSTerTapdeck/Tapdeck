@@ -52,9 +52,9 @@ Tapdeck does not mount, unmount, disable, format or alter MiSTer storage. Its US
 - **A library you can actually browse** — list and three-column card views, fast search, system and genre filters, sorting, favourites and Last Played.
 - **Make your own shelves** — create playlists, add games in batches, and put together a queue for any mood or hardware setup.
 - **Artwork that gets out of the way** — on-device artwork caching, Libretro thumbnail support and graceful fallbacks when a title has no art.
-- **Discover what to play next** — recommendations based on your library, platform groupings and cached ratings.
+- **Discover what to play next** — recommendations based on your library, platform groupings and cached ratings. Closely related labels such as Brawler and Beat ’em Up can recommend one another without being merged in the library.
 - **Metadata where it helps** — game details from your MiSTer library, with optional IGDB ratings for titles that have no rating in their gamelist.
-- **Launch from the phone** — Tapdeck sends launch requests through MiSTer Remote, including direct MGL launches for systems outside the usual mappings.
+- **Launch from the phone** — Tapdeck sends launch requests through MiSTer Remote, including direct MGL launches for systems outside the usual mappings. When an arcade title has multiple installed MRA versions, choose the Default, Alternative or MeatCores version before launch.
 - **Made for use in the room** — haptic feedback, full-screen game cards and Android back navigation.
 - **Light or dark, by choice** — switch the reading surface in Settings → Appearance. Tapdeck remembers the choice on the device.
 
@@ -80,6 +80,7 @@ Some additions are optional:
 
 - [AmigaVision bridge](./integrations/amigavision-bridge/package/README.md) — required only for launching directly into an AmigaVision game.
 - [IGDB metadata and artwork bridge](./integrations/igdb-metadata-bridge/README.md) — optional local helper that caches missing ratings. It can also read your system folders' `boxart` and `snaps` images when you explicitly enable that setting in Tapdeck.
+- [TATE metadata bridge](./integrations/tate-metadata-bridge/package/README.md) — optional local helper that identifies arcade MRAs configured for a vertical display. TATE markers appear in arcade game lists after a library refresh.
 
 ## A note on artwork and metadata
 

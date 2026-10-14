@@ -16,7 +16,7 @@ function GameRowImpl({game,saved,onPress,annotation,trailing,artworkUrl,allowDow
  };
  return <Pressable testID={`row-${game.id}`} accessibilityRole="button" accessibilityLabel={`Open ${game.title}, ${game.system}, ${game.year??'year unknown'}${saved?', saved':''}`} onPress={handlePress} style={[s.row,isDarkTheme()&&s.darkRow,released&&s.released]}>
   <View style={[s.thumb,isDarkTheme()&&s.darkThumb]}><ArtworkImage game={game} misterUrl={artworkUrl} allowDownload={allowDownload} priority="visible" theme={theme} style={s.image}/></View>
-  <View style={s.copy}><Text style={[s.title,{color:c.ink}]} numberOfLines={1}>{game.title}</Text><Text style={[s.meta,{color:c.muted}]}>{game.system} <Text style={[s.dot,{color:c.muted}]}>·</Text> {game.year??'Year unknown'}</Text><Text style={[s.genre,{color:c.muted}]} numberOfLines={1}>{annotation??cardGenre(game.genre)}</Text></View>
+  <View style={s.copy}><Text style={[s.title,{color:c.ink}]} numberOfLines={1}>{game.title}</Text><Text style={[s.meta,{color:c.muted}]}>{game.system} <Text style={[s.dot,{color:c.muted}]}>·</Text> {game.year??'Year unknown'}</Text><Text style={[s.genre,{color:c.muted}]} numberOfLines={1}>{game.tate?'TATE · ':''}{annotation??cardGenre(game.genre)}</Text></View>
   {trailing??(saved&&<Icon name="bookmark" filled size={16} color={c.orange}/>)}
  </Pressable>;
 }

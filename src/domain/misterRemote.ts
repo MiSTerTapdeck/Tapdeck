@@ -2,7 +2,21 @@ import type {Game} from '../data/library';
 export function normaliseMiSTerRemoteUrl(value:string){const raw=value.trim().replace(/\/+$/,'');if(!raw)throw new Error('Enter your MiSTer address.');const candidate=/^https?:\/\//i.test(raw)?raw:`http://${raw}`;const parsed=new URL(candidate);if(!parsed.hostname)throw new Error('Enter a valid MiSTer address.');return `http://${parsed.hostname}:8182/api`;}
 function normaliseAmigaVisionBridgeUrl(value:string){const raw=value.trim().replace(/\/+$/,'');if(!raw)throw new Error('Enter your MiSTer address.');const candidate=/^https?:\/\//i.test(raw)?raw:`http://${raw}`;const parsed=new URL(candidate);if(!parsed.hostname)throw new Error('Enter a valid MiSTer address.');return `http://${parsed.hostname}:8183/launch`;}
 function normaliseZaparooSocketUrl(value:string){const raw=value.trim().replace(/\/+$/,'');if(!raw)throw new Error('Enter your MiSTer address.');const candidate=/^https?:\/\//i.test(raw)?raw:`http://${raw}`;const parsed=new URL(candidate);if(!parsed.hostname)throw new Error('Enter a valid MiSTer address.');return `ws://${parsed.hostname}:7497/api/v0.1`;}
-export async function returnMiSTerToMenu(value:string){const response=await fetch(`${normaliseMiSTerRemoteUrl(value)}/launch/menu`,{method:'POST'});if(!response.ok)throw new Error(`MiSTer Remote could not return to its menu (HTTP ${response.status}).`);}
+export function isMiSTerUnavailable(error:unknown){
+ const message=error instanceof Error?error.message:String(error);
+ return /could not reach the mister launch service|mister remote timed out|network request failed|failed to fetch|network error/i.test(message);
+}
+export async function returnMiSTerToMenu(value:string){
+ const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),5000);
+ try{
+  const response=await fetch(`${normaliseMiSTerRemoteUrl(value)}/launch/menu`,{method:'POST',signal:controller.signal});
+  if(!response.ok)throw new Error(`MiSTer Remote could not return to its menu (HTTP ${response.status}).`);
+ }catch(error){
+  if(error instanceof DOMException&&error.name==='AbortError')throw new Error('MiSTer Remote timed out. Check that Remote is running on your MiSTer.');
+  if(error instanceof TypeError)throw new Error('Could not reach the MiSTer launch service.');
+  throw error;
+ }finally{clearTimeout(timer);}
+}
 const systemKey=(value?:string)=>value?.toLowerCase().replace(/[^a-z0-9]+/g,'')??'';
 type LaunchGame=Pick<Game,'title'|'system'|'remotePath'|'remoteFilePath'|'remoteSystemId'>;
 const zaparooSystemIds=new Set(['neogeopocket','neogeopocketcolor','ngp','ngpc']);
