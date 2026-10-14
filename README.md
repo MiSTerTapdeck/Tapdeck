@@ -21,17 +21,23 @@
   <a href="./docs/storage-safety.md">Storage safety</a>
 </p>
 
-<p align="center">
-  <a href="./docs/screenshots/game%20list.jpeg"><img src="./docs/screenshots/game%20list.jpeg" width="180" alt="Tapdeck library list" /></a>
-  <a href="./docs/screenshots/game%20cards.jpeg"><img src="./docs/screenshots/game%20cards.jpeg" width="180" alt="Tapdeck game card grid" /></a>
-  <a href="./docs/screenshots/card%20front.jpeg"><img src="./docs/screenshots/card%20front.jpeg" width="180" alt="Tapdeck game detail card" /></a>
-  <a href="./docs/screenshots/card%20back.jpeg"><img src="./docs/screenshots/card%20back.jpeg" width="180" alt="Tapdeck game story card" /></a>
-</p>
-<p align="center">
-  <a href="./docs/screenshots/playlists.jpeg"><img src="./docs/screenshots/playlists.jpeg" width="180" alt="Tapdeck playlists" /></a>
-  <a href="./docs/screenshots/discover.jpeg"><img src="./docs/screenshots/discover.jpeg" width="180" alt="Tapdeck discover screen" /></a>
-  <a href="./docs/screenshots/settings.jpeg"><img src="./docs/screenshots/settings.jpeg" width="180" alt="Tapdeck settings" /></a>
-</p>
+## See Tapdeck in use
+
+<table>
+  <tr>
+    <td align="center" width="33%"><a href="./docs/screenshots/game%20list.jpeg"><img src="./docs/screenshots/game%20list.jpeg" width="230" alt="Tapdeck game library" /></a><br /><strong>Library</strong><br />Browse across your whole collection.</td>
+    <td align="center" width="33%"><a href="./docs/screenshots/card%20front.jpeg"><img src="./docs/screenshots/card%20front.jpeg" width="230" alt="Tapdeck game card" /></a><br /><strong>Game card</strong><br />Artwork, metadata and launch controls.</td>
+    <td align="center" width="33%"><a href="./docs/screenshots/discover.jpeg"><img src="./docs/screenshots/discover.jpeg" width="230" alt="Tapdeck Discover" /></a><br /><strong>Discover</strong><br />Find something worth playing.</td>
+  </tr>
+  <tr>
+    <td align="center"><a href="./docs/screenshots/game%20cards.jpeg"><img src="./docs/screenshots/game%20cards.jpeg" width="170" alt="Tapdeck card view" /></a><br /><strong>Card view</strong></td>
+    <td align="center"><a href="./docs/screenshots/playlists.jpeg"><img src="./docs/screenshots/playlists.jpeg" width="170" alt="Tapdeck playlists" /></a><br /><strong>Playlists</strong></td>
+    <td align="center"><a href="./docs/screenshots/card%20back.jpeg"><img src="./docs/screenshots/card%20back.jpeg" width="170" alt="Tapdeck game story" /></a><br /><strong>Game story</strong></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="3"><a href="./docs/screenshots/settings.jpeg"><img src="./docs/screenshots/settings.jpeg" width="170" alt="Tapdeck settings" /></a><br /><strong>MiSTer setup and settings</strong></td>
+  </tr>
+</table>
 
 ## Your collection deserves better than a folder browser
 
