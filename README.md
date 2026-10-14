@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/MiSTerTapdeck/Tapdeck/releases">Download for Android</a>
+  <a href="#building-an-android-apk">Build for Android</a>
   ·
   <a href="#getting-started">Getting started</a>
   ·
@@ -41,7 +41,7 @@ It is built for large, mixed MiSTer libraries: arcade boards, consoles, computer
 
 ## Trust, storage and source code
 
-Tapdeck is currently distributed as a side-loaded Android APK. If you prefer not to install a side-loaded app, please wait for a future store or independent Android repository release.
+Tapdeck is currently distributed as source code. Each GitHub Release contains the exact tagged source archive so you can inspect it and build your own Android APK. If you prefer not to build a side-loaded app, please wait for a future store or independent Android repository release.
 
 The complete source is public under the [Tapdeck Free Use and Distribution License](./LICENSE). You may use, modify and share Tapdeck for free, retaining the licence notice. Selling or distributing Tapdeck or modified versions for payment requires written permission. Earlier MIT releases retain their original permissions. Some game artwork and metadata originate from third-party sources and are not granted by this licence.
 
@@ -60,8 +60,8 @@ Tapdeck does not mount, unmount, disable, format or alter MiSTer storage. Its US
 
 ## Getting started
 
-1. Download the latest APK from [Releases](https://github.com/MiSTerTapdeck/Tapdeck/releases).
-2. Open it on an Android phone or tablet and allow your browser or file manager to install apps when Android asks.
+1. Clone the source or download a tagged source archive from [Releases](https://github.com/MiSTerTapdeck/Tapdeck/releases).
+2. Build an Android APK using the instructions below, then open it on an Android phone or tablet and allow installation when Android asks.
 3. Put the phone and MiSTer on the same home network.
 4. Open Tapdeck, enter your MiSTer’s IP address, then connect and sync the library.
 
@@ -110,13 +110,21 @@ The web preview is useful for layout checks. Test MiSTer connection, artwork ref
 
 ## Building an Android APK
 
-For the signed installable release APK:
+Tapdeck releases contain source code only. You can build an Android APK in either of these ways:
+
+**Local Android build** — install Android Studio and the Android SDK, then run:
+
+```sh
+npx expo run:android --variant release
+```
+
+**EAS build** — fork the repository, remove `expo.extra.eas.projectId` from `app.json`, sign in with `npx eas-cli login`, run `npx eas-cli init`, then run:
 
 ```sh
 npx eas-cli build --platform android --profile release
 ```
 
-For private testing, use the `preview` profile instead. Release APKs are attached to the project’s [GitHub Releases](https://github.com/MiSTerTapdeck/Tapdeck/releases) page.
+For private testing, use the `preview` profile instead.
 
 ## Project layout
 
