@@ -25,20 +25,18 @@
 
 <table>
   <tr>
-    <td align="center" width="33%"><a href="./docs/screenshots/game%20list.jpeg"><img src="./docs/screenshots/game%20list.jpeg" width="230" alt="Tapdeck game library" /></a><br /><strong>Library</strong><br />Browse across your whole collection.</td>
-    <td align="center" width="33%"><a href="./docs/screenshots/card%20front.jpeg"><img src="./docs/screenshots/card%20front.jpeg" width="230" alt="Tapdeck game card" /></a><br /><strong>Game card</strong><br />Artwork, metadata and launch controls.</td>
-    <td align="center" width="33%"><a href="./docs/screenshots/discover.jpeg"><img src="./docs/screenshots/discover.jpeg" width="230" alt="Tapdeck Discover" /></a><br /><strong>Discover</strong><br />Find something worth playing.</td>
+    <td align="center"><a href="./docs/screenshots/1.jpeg"><img src="./docs/screenshots/1.jpeg" width="210" alt="Tapdeck screenshot 1" /></a></td>
+    <td align="center"><a href="./docs/screenshots/2.jpeg"><img src="./docs/screenshots/2.jpeg" width="210" alt="Tapdeck screenshot 2" /></a></td>
+    <td align="center"><a href="./docs/screenshots/3.jpeg"><img src="./docs/screenshots/3.jpeg" width="210" alt="Tapdeck screenshot 3" /></a></td>
+    <td align="center"><a href="./docs/screenshots/4.jpeg"><img src="./docs/screenshots/4.jpeg" width="210" alt="Tapdeck screenshot 4" /></a></td>
   </tr>
   <tr>
-    <td align="center"><a href="./docs/screenshots/game%20cards.jpeg"><img src="./docs/screenshots/game%20cards.jpeg" width="170" alt="Tapdeck card view" /></a><br /><strong>Card view</strong></td>
-    <td align="center"><a href="./docs/screenshots/playlists.jpeg"><img src="./docs/screenshots/playlists.jpeg" width="170" alt="Tapdeck playlists" /></a><br /><strong>Playlists</strong></td>
-    <td align="center"><a href="./docs/screenshots/card%20back.jpeg"><img src="./docs/screenshots/card%20back.jpeg" width="170" alt="Tapdeck game story" /></a><br /><strong>Game story</strong></td>
-  </tr>
-  <tr>
-    <td align="center" colspan="3"><a href="./docs/screenshots/settings.jpeg"><img src="./docs/screenshots/settings.jpeg" width="170" alt="Tapdeck settings" /></a><br /><strong>MiSTer setup and settings</strong></td>
+    <td align="center"><a href="./docs/screenshots/5.jpeg"><img src="./docs/screenshots/5.jpeg" width="210" alt="Tapdeck screenshot 5" /></a></td>
+    <td align="center"><a href="./docs/screenshots/6.jpeg"><img src="./docs/screenshots/6.jpeg" width="210" alt="Tapdeck screenshot 6" /></a></td>
+    <td align="center"><a href="./docs/screenshots/7.jpeg"><img src="./docs/screenshots/7.jpeg" width="210" alt="Tapdeck screenshot 7" /></a></td>
+    <td align="center"><a href="./docs/screenshots/8.jpeg"><img src="./docs/screenshots/8.jpeg" width="210" alt="Tapdeck screenshot 8" /></a></td>
   </tr>
 </table>
-
 ## Your collection deserves better than a folder browser
 
 Tapdeck turns a MiSTer library into a tactile game binder. Browse cover art, screenshots and metadata; filter across systems and genres; make playlists; find something you have not played in years; then launch it on your MiSTer from the sofa.
