@@ -132,3 +132,8 @@ For private testing, use the `preview` profile instead.
 - `integrations/` — optional MiSTer-side helpers for AmigaVision and IGDB metadata.
 - `tests/` — regression tests for library handling, artwork, playlists, discovery and launch routing.
 - `scripts/` — maintenance tools for sample content and artwork indexes.
+
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup and pull-request guidance. For security issues, use [SECURITY.md](SECURITY.md).

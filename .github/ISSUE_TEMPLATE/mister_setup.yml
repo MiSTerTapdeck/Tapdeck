@@ -1,0 +1,48 @@
+name: MiSTer or setup help
+description: Get help connecting Tapdeck to MiSTer or configuring an optional helper.
+title: "[Setup]: "
+labels: [setup]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not post credentials, private network addresses, or game files. Use placeholders such as 192.168.x.x where needed.
+  - type: input
+    id: version
+    attributes:
+      label: Tapdeck version
+    validations:
+      required: true
+  - type: dropdown
+    id: topic
+    attributes:
+      label: What needs setting up?
+      options:
+        - MiSTer connection
+        - Library indexing
+        - Game launching
+        - Artwork bridge
+        - IGDB helper
+        - TATE metadata helper
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Your setup
+      description: Include MiSTer, Android, and relevant helper versions. Remove sensitive details.
+    validations:
+      required: true
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What have you tried?
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: What happened?
+    validations:
+      required: true

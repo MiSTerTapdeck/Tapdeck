@@ -1,0 +1,19 @@
+# Notice and credits
+
+Tapdeck source code is copyright its contributors and is provided under the repository [licence](LICENSE). Game files, BIOS files, game artwork, and game metadata are not included with Tapdeck.
+
+## Software dependencies
+
+Tapdeck uses open-source packages recorded in `package.json` and `package-lock.json`. Each dependency remains subject to its own licence and notices.
+
+## Optional local services and metadata sources
+
+- [MiSTer FPGA](https://github.com/MiSTer-devel/Main_MiSTer) provides the hardware platform Tapdeck works with.
+- [Zaparoo Core](https://zaparoo.org/) provides the optional local media index used to read a library.
+- [MiSTer Remote](https://github.com/wizzomafizzo/mister-remote) provides the local launcher service used by Tapdeck.
+- [IGDB](https://www.igdb.com/) and Twitch provide optional metadata and ratings through Tapdeck's user-configured MiSTer helper.
+- [Libretro Thumbnails](https://github.com/libretro-thumbnails) provide an optional artwork source downloaded on demand.
+
+These projects, services, and their data remain the property of their respective owners and are subject to their own licences and terms. Tapdeck is not affiliated with or endorsed by them.
+
+The filename indexes under `src/data/artwork-indexes` support artwork matching; they do not distribute game images.
