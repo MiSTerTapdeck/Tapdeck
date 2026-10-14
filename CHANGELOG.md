@@ -1,5 +1,15 @@
 # Changes
 
+## Unreleased
+
+- Added automated GitHub validation for every push and pull request: dependency installation, type checking and tests.
+- Added contributor, security, issue-reporting and third-party-notice documentation, plus monthly Dependabot update checks.
+- Replaced the README gallery with current Tapdeck screenshots in numeric order.
+
+## 1.0.4
+
+- Added an aged trading-card frame around game-card snap artwork without changing artwork loading, card interaction or launch controls.
+
 ## 1.0.3
 
 - Added an arcade-version picker for games with more than one installed MRA. Tapdeck groups the available Default, Alternative and MeatCores choices so the preferred version can be launched from the game card.
