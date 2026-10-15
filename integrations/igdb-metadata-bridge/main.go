@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	pathpkg "path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -22,6 +23,8 @@ const (
 	listenAddress = ":8184"
 	configPath    = "/media/fat/Tapdeck/igdb.json"
 	ratingsPath   = "/media/fat/Tapdeck-IGDB/ratings.json"
+	neoGeoMGLPath = "/media/fat/Tapdeck/launch-neogeo.mgl"
+	remoteLaunch  = "http://127.0.0.1:8182/api/launch"
 	maxBody       = 16384
 )
 
@@ -48,6 +51,10 @@ type ratingResponse struct {
 	Rating  *float64 `json:"rating,omitempty"`
 	Match   string   `json:"match,omitempty"`
 	Message string   `json:"message,omitempty"`
+}
+type neoGeoLaunchRequest struct {
+	Path string `json:"path"`
+	Mode string `json:"mode"`
 }
 type igdbGame struct {
 	Name             string   `json:"name"`
@@ -77,11 +84,80 @@ func main() {
 	mux.HandleFunc("/configure", b.configure)
 	mux.HandleFunc("/rating", b.rating)
 	mux.HandleFunc("/ratings", b.ratings)
+	mux.HandleFunc("/launch/neogeo", b.launchNeoGeo)
 	artwork := newArtworkCatalog()
 	mux.HandleFunc("/artwork", artwork.index)
 	mux.HandleFunc("/artwork/file", artwork.image)
 	log.Printf("Tapdeck IGDB metadata bridge listening on %s", listenAddress)
 	log.Fatal(http.ListenAndServe(listenAddress, cors(mux)))
+}
+
+func (b *bridge) launchNeoGeo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST required", http.StatusMethodNotAllowed)
+		return
+	}
+	var request neoGeoLaunchRequest
+	if err := decode(r, &request); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	mgl, err := neoGeoMGL(request.Path, request.Mode)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if err := os.MkdirAll(filepath.Dir(neoGeoMGLPath), 0755); err != nil {
+		http.Error(w, "Could not prepare the Tapdeck launcher", http.StatusInternalServerError)
+		return
+	}
+	if err := atomicWrite(neoGeoMGLPath, []byte(mgl), 0644); err != nil {
+		http.Error(w, "Could not write the Tapdeck launcher", http.StatusInternalServerError)
+		return
+	}
+	body, _ := json.Marshal(map[string]string{"path": neoGeoMGLPath})
+	remoteRequest, err := http.NewRequestWithContext(r.Context(), http.MethodPost, remoteLaunch, strings.NewReader(string(body)))
+	if err != nil {
+		http.Error(w, "Could not create the MiSTer Remote request", http.StatusInternalServerError)
+		return
+	}
+	remoteRequest.Header.Set("Content-Type", "application/json")
+	response, err := b.client.Do(remoteRequest)
+	if err != nil {
+		http.Error(w, "Could not reach MiSTer Remote", http.StatusBadGateway)
+		return
+	}
+	defer response.Body.Close()
+	if response.StatusCode/100 != 2 {
+		http.Error(w, fmt.Sprintf("MiSTer Remote returned HTTP %d", response.StatusCode), http.StatusBadGateway)
+		return
+	}
+	jsonReply(w, http.StatusOK, map[string]string{"status": "launching", "mode": strings.ToUpper(request.Mode)})
+}
+
+func neoGeoMGL(path, mode string) (string, error) {
+	clean := pathpkg.Clean(strings.ReplaceAll(strings.TrimSpace(path), `\`, "/"))
+	if !strings.HasPrefix(clean, "/media/") || (!strings.EqualFold(pathpkg.Ext(clean), ".neo") && !strings.EqualFold(pathpkg.Ext(clean), ".zip")) {
+		return "", errors.New("A Neo Geo game path on MiSTer storage is required")
+	}
+	setName := "NeoGeo"
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "aes":
+	case "mvs":
+		setName = "NeoGeoMVS"
+	default:
+		return "", errors.New("Neo Geo mode must be AES or MVS")
+	}
+	if strings.ContainsRune(clean, 0) {
+		return "", errors.New("Could not create the Neo Geo game path")
+	}
+	escape := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&quot;", "'", "&apos;")
+	// Neo Geo ROM sets use file index 1 (FS1 in the core's CONF_STR).
+	// MiSTer resolves relative ROM paths against the core's game directory,
+	// not the MGL directory. Keep the absolute storage path for SD and USB.
+	return fmt.Sprintf("<mistergamedescription>\n\t<rbf>_Console/NeoGeo</rbf>\n\t<setname same_dir=\"1\">%s</setname>\n\t<file delay=\"1\" type=\"f\" index=\"1\" path=\"%s\"/>\n</mistergamedescription>\n", setName, escape.Replace(clean)), nil
 }
 func cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestNormaliseAndPlatforms(t *testing.T) {
 	if normalise("The Art of Fighting 2!") != "artoffighting2" {
@@ -25,5 +28,22 @@ func TestNormaliseAndPlatforms(t *testing.T) {
 		if !platformMatches(arcade, system) {
 			t.Fatalf("expected Arcade match for %s", system)
 		}
+	}
+}
+
+func TestNeoGeoMGLModes(t *testing.T) {
+	mvs, err := neoGeoMGL("/media/usb0/games/NEOGEO/Metal Slug (mslug).neo", "mvs")
+	if !strings.Contains(mvs, `<file delay="1" type="f" index="1"`) {
+		t.Fatalf("Neo Geo ROM sets must use the core's ROM loader at index 1: %s", mvs)
+	}
+	if err != nil || !strings.Contains(mvs, `<setname same_dir="1">NeoGeoMVS</setname>`) || !strings.Contains(mvs, `path="/media/usb0/games/NEOGEO/Metal Slug (mslug).neo"`) {
+		t.Fatalf("unexpected MVS launcher: %v %s", err, mvs)
+	}
+	aes, err := neoGeoMGL("/media/fat/games/NEOGEO/Metal Slug (mslug).neo", "aes")
+	if err != nil || !strings.Contains(aes, `<setname same_dir="1">NeoGeo</setname>`) || !strings.Contains(aes, `path="/media/fat/games/NEOGEO/Metal Slug (mslug).neo"`) {
+		t.Fatalf("unexpected AES launcher: %v %s", err, aes)
+	}
+	if _, err := neoGeoMGL("/etc/passwd", "mvs"); err == nil {
+		t.Fatal("expected unsafe path to be rejected")
 	}
 }

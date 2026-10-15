@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createLocalArtworkLookup,parseLocalArtworkManifest} from '../src/domain/localArtwork.ts';
 import {parseArtworkDirectory,parseArtworkDirectoryInChunks,matchLibretroFilename,matchLibretroFilenameInChunks,libretroSystemsFor,libretroArtworkIdentity,artworkCacheFilename,libretroArtworkUrl} from '../src/domain/libretroNaming.ts';
-import {amigaVisionCanonicalTitle,c64RunCommands,c64TapeLoadCommands,isC64TapeImage,isSpectrumTapeImage,launchRoutesFor,mglLaunchPath,spectrumTapeLoadCommands,usbMountCandidates,usesZaparooLauncher} from '../src/domain/misterRemote.ts';
+import {amigaVisionCanonicalTitle,c64RunCommands,c64TapeLoadCommands,isC64TapeImage,isSpectrumTapeImage,launchRoutesFor,mglLaunchPath,neoGeoLaunchMode,spectrumTapeLoadCommands,usbMountCandidates,usesZaparooLauncher} from '../src/domain/misterRemote.ts';
 test('local artwork checks exact ROM names and titles in their own system only',()=>{
  const lookup=createLocalArtworkLookup([
   {id:'box',folder:'/media/usb0/games/SNES',name:'Super Metroid (USA)',kind:'boxart'},
@@ -112,6 +112,15 @@ test('ordinary systems use MiSTer Remote’s game launch endpoint',()=>{
  assert.deepEqual(launchRoutesFor({remoteSystemId:'C64'} as any),['/games/launch']);
  assert.deepEqual(launchRoutesFor({remoteSystemId:'ZXSpectrum'} as any),['/games/launch']);
  assert.deepEqual(launchRoutesFor({remoteSystemId:'SNES'} as any),['/games/launch']);
+});
+test('Neo Geo library identities select separate AES and MVS configurations',()=>{
+ const aes={system:'Neo Geo',remoteSystemId:'NeoGeo'} as any;
+ const mvs={system:'Neo Geo MVS',remoteSystemId:'NeoGeoMVS'} as any;
+ assert.equal(neoGeoLaunchMode(aes),'aes');
+ assert.equal(neoGeoLaunchMode(mvs),'mvs');
+ assert.deepEqual(launchRoutesFor(aes),['/launch/neogeo']);
+ assert.deepEqual(launchRoutesFor(mvs),['/launch/neogeo']);
+ assert.equal(neoGeoLaunchMode({system:'Neo Geo CD',remoteSystemId:'NeoGeoCD'} as any),undefined);
 });
 test('Neo Geo Pocket systems use Zaparoo because MiSTer Remote cannot launch them',()=>{
  const mono={title:'Neo Turf Masters',system:'Neo Geo Pocket',remoteSystemId:'NeoGeoPocket',remoteFilePath:'/media/usb0/games/NGP/Neo Turf Masters.ngp'} as any;

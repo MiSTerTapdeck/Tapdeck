@@ -21,6 +21,20 @@ const systemKey=(value?:string)=>value?.toLowerCase().replace(/[^a-z0-9]+/g,'')?
 type LaunchGame=Pick<Game,'title'|'system'|'remotePath'|'remoteFilePath'|'remoteSystemId'>;
 const zaparooSystemIds=new Set(['neogeopocket','neogeopocketcolor','ngp','ngpc']);
 export function usesZaparooLauncher(game:LaunchGame){return zaparooSystemIds.has(systemKey(game.remoteSystemId))||zaparooSystemIds.has(systemKey(game.system));}
+export function neoGeoLaunchMode(game:LaunchGame):'aes'|'mvs'|undefined{
+ const remote=systemKey(game.remoteSystemId);
+ if(remote==='neogeomvs')return 'mvs';
+ if(remote==='neogeo'||remote==='neogeoaes')return 'aes';
+ return undefined;
+}
+function neoGeoBridgeUrl(value:string){const raw=value.trim().replace(/\/+$/,'');const candidate=/^https?:\/\//i.test(raw)?raw:`http://${raw}`;const parsed=new URL(candidate);return `http://${parsed.hostname}:8184/launch/neogeo`;}
+async function launchNeoGeoGame(value:string,path:string,mode:'aes'|'mvs',signal:AbortSignal){
+ const response=await fetch(neoGeoBridgeUrl(value),{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path,mode}),signal});
+ if(response.ok)return;
+ const detail=(await response.text().catch(()=>'' )).trim();
+ if(response.status===404)throw new Error('Update the Tapdeck MiSTer helper to enable separate Neo Geo AES and MVS launching.');
+ throw new Error(`Tapdeck could not start Neo Geo in ${mode.toUpperCase()} mode (HTTP ${response.status})${detail?`: ${detail}`:''}`);
+}
 /** CD32Vision titles are launched by their SD-card MGLs, not by Remote's game-path endpoint. */
 export function mglLaunchPath(game:LaunchGame){
  const remote=systemKey(game.remoteSystemId);
@@ -37,7 +51,7 @@ export function mglLaunchPath(game:LaunchGame){
  const filename=source.split('/').pop()?.replace(/\.[^.]+$/,'')||game.title;
  return filename?`/media/fat/_Console/_Amiga CD32 Games/${filename}.mgl`:undefined;
 }
-export function launchRoutesFor(game:LaunchGame){return [usesZaparooLauncher(game)?'/api/v0.1':mglLaunchPath(game)?'/launch':'/games/launch'];}
+export function launchRoutesFor(game:LaunchGame){return [neoGeoLaunchMode(game)?'/launch/neogeo':usesZaparooLauncher(game)?'/api/v0.1':mglLaunchPath(game)?'/launch':'/games/launch'];}
 export function amigaVisionCanonicalTitle(game:Pick<Game,'remoteFilePath'|'remoteSystemId'>){
  const path=game.remoteFilePath?.replace(/\\/g,'/');
  if(systemKey(game.remoteSystemId)!=='amiga'||!path)return undefined;
@@ -83,4 +97,4 @@ function remoteWebSocketUrl(value:string){return normaliseMiSTerRemoteUrl(value)
 function sendRemoteCommands(value:string,commands:string[]){return new Promise<void>((resolve,reject)=>{const socket=new WebSocket(remoteWebSocketUrl(value));const openTimeout=setTimeout(()=>{socket.close();reject(new Error('MiSTer Remote keyboard connection timed out.'));},4000);let index=0;const sendNext=()=>{if(index>=commands.length){clearTimeout(openTimeout);socket.close();resolve();return;}socket.send(commands[index++]);setTimeout(sendNext,180);};socket.onopen=()=>{clearTimeout(openTimeout);sendNext();};socket.onerror=()=>{clearTimeout(openTimeout);reject(new Error('MiSTer Remote could not send the C64 tape load command.'));};});}
 function startC64Tape(value:string){setTimeout(()=>{void sendRemoteCommands(value,c64TapeLoadCommands()).then(()=>{setTimeout(()=>{void sendRemoteCommands(value,c64RunCommands()).catch(()=>{});},3000);}).catch(()=>{});},2800);}
 function startSpectrumTape(value:string){setTimeout(()=>{void sendRemoteCommands(value,spectrumTapeLoadCommands()).catch(()=>{});},2800);}
-export async function launchMiSTerRemoteGame(value:string,game:LaunchGame):Promise<string>{if(!game.remoteFilePath)throw new Error('This game has no launch path in the MiSTer library.');const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),10000);try{const amigaVisionTitle=amigaVisionCanonicalTitle(game);if(amigaVisionTitle)return await launchAmigaVisionGame(value,amigaVisionTitle,controller.signal);const mglPath=mglLaunchPath(game);const path=mglPath??await resolveMountedUsbPath(value,game.remoteFilePath,controller.signal);if(usesZaparooLauncher(game)){const zapScript=game.remotePath?.trim()||`**launch:${path}`;await launchZaparooGame(value,zapScript,controller.signal);return path;}const route=mglPath?'/launch':'/games/launch';const response=await fetch(`${normaliseMiSTerRemoteUrl(value)}${route}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path}),signal:controller.signal});if(!response.ok){const detail=(await response.text().catch(()=>'' )).trim();throw new Error(`MiSTer Remote could not launch the game (HTTP ${response.status})${detail?`: ${detail}`:''}`);}if(isC64TapeImage(game))startC64Tape(value);if(isSpectrumTapeImage(game))startSpectrumTape(value);return path;}catch(error){if(error instanceof DOMException&&error.name==='AbortError')throw new Error('MiSTer Remote timed out. Check that Remote is running on your MiSTer.');if(error instanceof TypeError)throw new Error('Could not reach the MiSTer launch service.');throw error;}finally{clearTimeout(timer);}}
+export async function launchMiSTerRemoteGame(value:string,game:LaunchGame):Promise<string>{if(!game.remoteFilePath)throw new Error('This game has no launch path in the MiSTer library.');const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),10000);try{const amigaVisionTitle=amigaVisionCanonicalTitle(game);if(amigaVisionTitle)return await launchAmigaVisionGame(value,amigaVisionTitle,controller.signal);const mglPath=mglLaunchPath(game);const path=mglPath??await resolveMountedUsbPath(value,game.remoteFilePath,controller.signal);const neoGeoMode=neoGeoLaunchMode(game);if(neoGeoMode){await launchNeoGeoGame(value,path,neoGeoMode,controller.signal);return path;}if(usesZaparooLauncher(game)){const zapScript=game.remotePath?.trim()||`**launch:${path}`;await launchZaparooGame(value,zapScript,controller.signal);return path;}const route=mglPath?'/launch':'/games/launch';const response=await fetch(`${normaliseMiSTerRemoteUrl(value)}${route}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path}),signal:controller.signal});if(!response.ok){const detail=(await response.text().catch(()=>'' )).trim();throw new Error(`MiSTer Remote could not launch the game (HTTP ${response.status})${detail?`: ${detail}`:''}`);}if(isC64TapeImage(game))startC64Tape(value);if(isSpectrumTapeImage(game))startSpectrumTape(value);return path;}catch(error){if(error instanceof DOMException&&error.name==='AbortError')throw new Error('MiSTer Remote timed out. Check that Remote is running on your MiSTer.');if(error instanceof TypeError)throw new Error('Could not reach the MiSTer launch service.');throw error;}finally{clearTimeout(timer);}}

@@ -33,6 +33,8 @@ The lookup order is **existing phone cache → your local artwork → Libretro**
 
 When enabled, Tapdeck reads a saved index immediately and checks for a newer index in the background when opening the app, connecting or syncing. The helper lists only system directories and their artwork folders; it never walks the ROM collection recursively. Its index is reused for one minute. Images download only when needed and use the existing download concurrency limit. After adding images, wait a minute and use **Sync library from Zaparoo**, or reopen the app. No gamelist scrape is required for these images. Turning the setting off clears its in-memory index and stops further folder indexing and local-artwork requests; Tapdeck continues with its usual cache and Libretro artwork.
 
+The helper also keeps Neo Geo launch modes separate while still using MiSTer Remote for the launch itself. Tapdeck sends `NeoGeo` records through an AES MGL set name and `NeoGeoMVS` records through an MVS set name. Both use the existing `NEOGEO` game folder; other systems retain their existing launch routes.
+
 Supported roots are `/media/fat/games`, `/media/usb0/games` through `/media/usb7/games`, plus `/media/fat/_Arcade/boxart` and `/media/fat/_Arcade/snaps`. Images must be ordinary files up to 20 MB; symlinked artwork folders/files are not served. The read-only `/artwork` and `/artwork/file` endpoints expose indexed artwork, not arbitrary files. Like the other helper endpoints, these are available to devices on the local network.
 
 If the helper is absent, older, offline or has no matching image, Tapdeck continues using its cache and Libretro. Install this updated helper once to enable local folders; no Android native dependency is added.
