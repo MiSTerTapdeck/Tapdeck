@@ -2,7 +2,38 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createLocalArtworkLookup,parseLocalArtworkManifest} from '../src/domain/localArtwork.ts';
 import {parseArtworkDirectory,parseArtworkDirectoryInChunks,matchLibretroFilename,matchLibretroFilenameInChunks,libretroSystemsFor,libretroArtworkIdentity,artworkCacheFilename,libretroArtworkUrl} from '../src/domain/libretroNaming.ts';
-import {amigaVisionCanonicalTitle,c64RunCommands,c64TapeLoadCommands,isC64TapeImage,isSpectrumTapeImage,launchRoutesFor,mglLaunchPath,neoGeoLaunchMode,spectrumTapeLoadCommands,usbMountCandidates,usesZaparooLauncher} from '../src/domain/misterRemote.ts';
+import {amigaVisionCanonicalTitle,c64RunCommands,c64TapeLoadCommands,isC64TapeImage,isSpectrumTapeImage,launchMiSTerRemoteGame,launchRoutesFor,mglLaunchPath,neoGeoLaunchMode,spectrumTapeLoadCommands,usbMountCandidates,usesZaparooLauncher} from '../src/domain/misterRemote.ts';
+import {addTateMetadata} from '../src/domain/tate.ts';
+
+test('AmigaVision and Neo Geo launch requests share Tapdeck Helper without changing their payloads',async()=>{
+ const originalFetch=globalThis.fetch;
+ const calls:{url:string;body:unknown}[]=[];
+ globalThis.fetch=(async(input,init)=>{
+  calls.push({url:String(input),body:JSON.parse(String(init?.body))});
+  return new Response('{}',{status:200});
+ }) as typeof fetch;
+ try{
+  await launchMiSTerRemoteGame('192.168.1.130',{title:'Turrican II',system:'Amiga',remoteSystemId:'Amiga',remoteFilePath:'/media/fat/games/Amiga/games/Turrican2'} as any);
+  await launchMiSTerRemoteGame('192.168.1.130',{title:'Alpha Mission II',system:'Neo Geo MVS',remoteSystemId:'NeoGeoMVS',remoteFilePath:'/media/fat/games/NEOGEO/Alpha Mission II.neo'} as any);
+  assert.deepEqual(calls,[
+   {url:'http://192.168.1.130:8184/launch/amigavision',body:{title:'Turrican2'}},
+   {url:'http://192.168.1.130:8184/launch/neogeo',body:{path:'/media/fat/games/NEOGEO/Alpha Mission II.neo',mode:'mvs'}},
+  ]);
+ }finally{globalThis.fetch=originalFetch;}
+});
+
+test('TATE metadata uses the unified helper port and preserves rotation labels',async()=>{
+ const originalFetch=globalThis.fetch;
+ const path='/media/fat/_Arcade/1942.mra';
+ globalThis.fetch=(async(input)=>{
+  assert.equal(String(input),'http://192.168.1.130:8184/orientations');
+  return new Response(JSON.stringify({orientations:{[path]:'ccw'}}));
+ }) as typeof fetch;
+ try{
+  const result=await addTateMetadata('192.168.1.130',[{id:'1942',category:'Arcade',remoteFilePath:path} as any]);
+  assert.equal(result[0].tate,'ccw');
+ }finally{globalThis.fetch=originalFetch;}
+});
 test('local artwork checks exact ROM names and titles in their own system only',()=>{
  const lookup=createLocalArtworkLookup([
   {id:'box',folder:'/media/usb0/games/SNES',name:'Super Metroid (USA)',kind:'boxart'},

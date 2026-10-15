@@ -1,6 +1,6 @@
 {
   "name": "tapdeck",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "main": "index.ts",
   "dependencies": {
     "@expo-google-fonts/bodoni-moda": "^0.4.2",
@@ -36,8 +36,7 @@
     "test": "node --experimental-strip-types --test tests/library.test.ts tests/artwork-regression.test.ts",
     "test:ui": "playwright test",
     "export": "expo export --platform all --no-bytecode",
-    "samples": "node scripts/fetch-samples.mjs",
-    "artwork-bridge": "node scripts/artwork-bridge.mjs"
+    "samples": "node scripts/fetch-samples.mjs"
   },
   "private": true
 }

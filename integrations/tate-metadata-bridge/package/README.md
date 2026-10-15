@@ -1,9 +1,7 @@
-# Install the Tapdeck TATE metadata bridge
+# Legacy TATE metadata package — do not install
 
-Copy this whole folder to the MiSTer, then run:
+The current Tapdeck app uses **one [Tapdeck Helper package](../../tapdeck-helper/package/README.md)**. No separate TATE metadata installation is required.
 
-```sh
-sh /media/fat/Tapdeck-TATE/install.sh
-```
+This directory is retained for historical reference and rollback. Its install script is disabled. The combined helper restores backed-up executables directly when rolling back, so disabling this installer does not remove that recovery option.
 
-It only reads arcade MRA files when Tapdeck refreshes its library. It does not edit any game files or MiSTer settings.
+The uninstall script remains available for removing an existing old service. For an older app release, use its historical Git tag and matching setup instructions.

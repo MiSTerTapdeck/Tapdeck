@@ -4,7 +4,7 @@ type TateResponse={orientations?:Record<string,'cw'|'ccw'>};
 
 function bridgeUrl(misterUrl:string){
  const url=new URL(misterUrl.includes('://')?misterUrl:`http://${misterUrl}`);
- return `http://${url.hostname}:8185/orientations`;
+ return `http://${url.hostname}:8184/orientations`;
 }
 
 // This is deliberately called only while Tapdeck refreshes the library. The

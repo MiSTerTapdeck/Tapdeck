@@ -11,6 +11,18 @@ import {isPlayableGame} from '../src/domain/playable.ts';
 import {isVisibleRemoteMedia} from '../src/domain/remoteMedia.ts';
 import {isMiSTerUnavailable} from '../src/domain/misterRemote.ts';
 import type {Game} from '../src/data/library';
+import {indexableMiSTerSystems} from '../src/domain/misterSystems.ts';
+
+test('library updates exclude virtual core targets but retain empty indexable systems',()=>{
+ const systems=[
+  {id:'t6gd5x6t4fjrrlrseon2pnjf4m',name:'Altair 8800',mediaCount:0,zapScript:'zaparoo://t6gd5x6t4fjrrlrseon2pnjf4m/Altair%208800'},
+  {id:'Altair8800',name:'Altair 8800',mediaCount:0},
+  {id:'JaguarCD',name:'Jaguar CD',mediaCount:12},
+  {id:'virtual-with-media',name:'Virtual system',mediaCount:3,zapScript:'zaparoo://virtual-with-media/Core'},
+ ];
+ assert.deepEqual(indexableMiSTerSystems(systems).map(system=>system.id),['Altair8800','JaguarCD']);
+ assert.equal(systems.length,4);
+});
 const seed:Game[]=[
  {id:'a',title:'Super Metroid',system:'SNES',category:'Consoles',year:1994,genre:'Platform',developer:'Nintendo',players:'1',description:''},
  {id:'b',title:'Turrican II',system:'Amiga',category:'Computers',year:1991,genre:'Action',developer:'Factor 5',players:'1',description:''},

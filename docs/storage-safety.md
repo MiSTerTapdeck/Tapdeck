@@ -6,10 +6,12 @@ MiSTer can assign an external drive a different `/media/usbN` slot after a reboo
 
 The Android app itself writes only to its own Android app storage: its cached library, preferences, playlists and downloaded artwork.
 
-The optional MiSTer helpers make narrowly-scoped changes:
+Tapdeck Helper makes narrowly scoped changes:
 
-- The AmigaVision helper writes the selected title to AmigaVision's existing `games/Amiga/shared/ags_boot` request file, copies its own executable to `/media/fat/Scripts`, and adds one labelled start block to `/media/fat/linux/user-startup.sh`.
-- The IGDB helper copies its own executable to `/media/fat/Scripts`, stores its configuration and rating cache under `/media/fat/Tapdeck`, and adds one labelled start block to `/media/fat/linux/user-startup.sh`.
-- The TATE metadata helper copies its own executable to `/media/fat/Scripts` and adds one labelled start block to `/media/fat/linux/user-startup.sh`. It only reads arcade MRA rotation metadata; it never edits an MRA, core, game or display setting.
+- AmigaVision writes the selected title to its existing `games/Amiga/shared/ags_boot` request file.
+- IGDB configuration is stored at `/media/fat/Tapdeck/igdb.json`, and the rating cache stays at `/media/fat/Tapdeck-IGDB/ratings.json`. No gamelist is edited.
+- Neo Geo launching writes `/media/fat/Tapdeck/launch-neogeo.mgl` with the selected AES/MVS configuration identity and an absolute ROM path, then asks MiSTer Remote to launch it. Existing saved BIOS configurations are reused.
+- Local artwork and TATE features read explicit artwork folders and MRA rotation metadata. They never edit artwork, MRAs, cores, games or display settings.
+- The installer preserves previous helper executables/startup entries under `/media/fat/Tapdeck/helper-backups`, installs `/media/fat/Scripts/tapdeck-helper`, stops the three separate services and replaces only labelled Tapdeck blocks in `/media/fat/linux/user-startup.sh`. Unrelated startup commands are preserved. A rollback script restores the previous services without changing credentials, caches or BIOS settings.
 
-All helper packages include an uninstall script that removes their executable and labelled startup block. None of them mount or change an SD card, USB drive, HDD, partition table or filesystem.
+The older separate helper packages are retained for rollback with their original uninstall scripts. Tapdeck Helper includes its own rollback script; see [installation and rollback](../integrations/tapdeck-helper/README.md). None of these helpers mount, unmount, format or repartition storage.

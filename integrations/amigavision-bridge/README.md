@@ -1,15 +1,7 @@
-# Tapdeck AmigaVision bridge
+# Legacy Tapdeck AmigaVision bridge
 
-This service receives a canonical AmigaVision title from Tapdeck, locates the mounted `games/Amiga/shared` folder on `usb0` through `usb7`, writes AmigaVision's native `ags_boot` request there, then starts the normal Amiga configuration through MiSTer Remote.
+This separate helper has been replaced by [Tapdeck Helper](../tapdeck-helper/README.md). **Do not install it for the current app.** Its install script is disabled.
 
-AmigaVision reads `ags_boot` during its own startup sequence and opens the matching canonical `RunQuiet` game or demo. No AmigaVision listener or HDF modification is required.
+Source and prebuilt binaries remain for historical reference and rollback. The combined helper can restore a previous device installation from its saved executables and startup blocks; it does not run this old installer. For an older app release, use the matching historical Git tag and its original instructions.
 
-## Build
-
-```sh
-GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0 go build -buildvcs=false -o tapdeck-amigavision-bridge .
-```
-
-Copy the binary to `/media/fat/Scripts/tapdeck-amigavision-bridge` and run it as a background service. It listens on port `8183`.
-
-The service re-discovers the USB mount on every launch, so moving AmigaVision from `usb3` to another USB slot does not require changing Tapdeck.
+For a fresh installation or migration, use only [the current helper package](../tapdeck-helper/package/README.md). Existing old installations can still use their original uninstall script to remove their service.

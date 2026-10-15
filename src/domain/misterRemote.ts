@@ -1,6 +1,6 @@
 import type {Game} from '../data/library';
 export function normaliseMiSTerRemoteUrl(value:string){const raw=value.trim().replace(/\/+$/,'');if(!raw)throw new Error('Enter your MiSTer address.');const candidate=/^https?:\/\//i.test(raw)?raw:`http://${raw}`;const parsed=new URL(candidate);if(!parsed.hostname)throw new Error('Enter a valid MiSTer address.');return `http://${parsed.hostname}:8182/api`;}
-function normaliseAmigaVisionBridgeUrl(value:string){const raw=value.trim().replace(/\/+$/,'');if(!raw)throw new Error('Enter your MiSTer address.');const candidate=/^https?:\/\//i.test(raw)?raw:`http://${raw}`;const parsed=new URL(candidate);if(!parsed.hostname)throw new Error('Enter a valid MiSTer address.');return `http://${parsed.hostname}:8183/launch`;}
+function normaliseAmigaVisionBridgeUrl(value:string){const raw=value.trim().replace(/\/+$/,'');if(!raw)throw new Error('Enter your MiSTer address.');const candidate=/^https?:\/\//i.test(raw)?raw:`http://${raw}`;const parsed=new URL(candidate);if(!parsed.hostname)throw new Error('Enter a valid MiSTer address.');return `http://${parsed.hostname}:8184/launch/amigavision`;}
 function normaliseZaparooSocketUrl(value:string){const raw=value.trim().replace(/\/+$/,'');if(!raw)throw new Error('Enter your MiSTer address.');const candidate=/^https?:\/\//i.test(raw)?raw:`http://${raw}`;const parsed=new URL(candidate);if(!parsed.hostname)throw new Error('Enter a valid MiSTer address.');return `ws://${parsed.hostname}:7497/api/v0.1`;}
 export function isMiSTerUnavailable(error:unknown){
  const message=error instanceof Error?error.message:String(error);
@@ -62,7 +62,7 @@ async function launchAmigaVisionGame(value:string,title:string,signal:AbortSigna
  const response=await fetch(normaliseAmigaVisionBridgeUrl(value),{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({title}),signal});
  if(response.ok)return title;
  const detail=(await response.text().catch(()=>'' )).trim();
- if(response.status===404)throw new Error('AmigaVision launch bridge is not installed on this MiSTer yet.');
+ if(response.status===404)throw new Error('Install or update Tapdeck Helper on your MiSTer to launch AmigaVision games.');
  if(response.status===503)throw new Error('AmigaVision is still preparing its external drive. Please try again in a minute.');
  throw new Error(`AmigaVision could not queue the game (HTTP ${response.status})${detail?`: ${detail}`:''}`);
 }

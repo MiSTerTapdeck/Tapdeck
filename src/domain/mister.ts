@@ -3,12 +3,13 @@ import {arcadeLaunchVariantLabel,groupGenericArcadeGames,isArcadeAlternativePath
 import {isVisibleRemoteMedia} from './remoteMedia';
 import {parseRating,parseYear} from './gamelist';
 import {addTateMetadata} from './tate';
+import {indexableMiSTerSystems} from './misterSystems.ts';
 
 type RemoteSystem={id:string;name:string;category?:string};
 export type RemoteGame={mediaId?:number;name:string;path:string;zapScript?:string;hasCover?:boolean;isMissing?:boolean|number;missing?:boolean|number;tags?:{type:string;tag:string}[];system:RemoteSystem};
 type SearchResult={results?:RemoteGame[];pagination?:{hasNextPage?:boolean;nextCursor?:string}};
 type RpcResponse<T>={id?:string|number;result?:T;error?:{message?:string}}; type RemoteMetadata={tags?:{type:string;tag:string}[];title?:{tags?:{type:string;tag:string}[];properties?:Record<string,{text?:string}>};properties?:Record<string,{text?:string}>};
-export type MiSTerSystem={id:string;name:string;category?:string;mediaCount?:number};
+export type MiSTerSystem={id:string;name:string;category?:string;mediaCount?:number;zapScript?:string};
 export type LibraryMaintenanceProgress={stage:'indexing'|'metadata'|'reading';message:string;current?:number;total?:number};
 
 export function normaliseMiSTerUrl(value:string){
@@ -52,7 +53,7 @@ async function retryDuringReconnect<T>(operation:()=>Promise<T>,onRetry?:()=>voi
 export async function readMiSTerSystems(url:string):Promise<MiSTerSystem[]>{
  const result=await rpc<MiSTerSystem[]|{systems?:MiSTerSystem[]}>(url,'systems',{all:true});
  const systems=Array.isArray(result)?result:result.systems??[];
- return systems.filter(system=>!!system.id&&!!system.name).sort((a,b)=>a.name.localeCompare(b.name));
+ return indexableMiSTerSystems(systems).sort((a,b)=>a.name.localeCompare(b.name));
 }
 export async function checkMiSTer(url:string){
  const version=await rpc<{version?:string;platform?:string}>(url,'version',undefined,4000);

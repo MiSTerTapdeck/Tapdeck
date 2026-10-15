@@ -67,7 +67,7 @@ Tapdeck does not mount, unmount, disable, format or alter MiSTer storage. Its US
 1. Clone the source or download a tagged source archive from [Releases](https://github.com/MiSTerTapdeck/Tapdeck/releases).
 2. Build an Android APK using the instructions below, then open it on an Android phone or tablet and allow installation when Android asks.
 3. Put the phone and MiSTer on the same home network.
-4. Open Tapdeck, enter your MiSTer’s IP address, then connect and sync the library.
+4. Open Tapdeck, enter your MiSTer’s IP address, then connect and sync the library. To import `gamelist.xml` files, select the affected systems in Library updates and run **Full Refresh**.
 
 Tapdeck remembers the connection and keeps a local copy of the library so the binder opens quickly.
 
@@ -78,21 +78,25 @@ Tapdeck uses two separate MiSTer services for different jobs:
 - **Zaparoo Core** indexes the library and supplies its paths and metadata.
 - **MiSTer Remote** performs the actual game launch requests.
 
-Install and run both before connecting Tapdeck. Tapdeck does not launch games through Zaparoo.
+Install and run both before connecting Tapdeck. MiSTer Remote handles normal launches; Neo Geo Pocket and Pocket Color retain their dedicated Zaparoo launch path.
 
 Some additions are optional:
 
-- [AmigaVision bridge](./integrations/amigavision-bridge/package/README.md) — required only for launching directly into an AmigaVision game.
-- [IGDB metadata and artwork bridge](./integrations/igdb-metadata-bridge/README.md) — optional local helper that caches missing ratings. It can also read your system folders' `boxart` and `snaps` images when you explicitly enable that setting in Tapdeck.
-- [TATE metadata bridge](./integrations/tate-metadata-bridge/package/README.md) — optional local helper that identifies arcade MRAs configured for a vertical display. TATE markers appear in arcade game lists after a library refresh.
+- [Tapdeck Helper](./integrations/tapdeck-helper/README.md) — one MiSTer service for AmigaVision launching, missing IGDB ratings, optional local artwork, separate Neo Geo AES/MVS configurations and TATE metadata. Includes migration from the three separate helpers and a rollback script. MiSTer Remote carries out launches.
+
+Install only `integrations/tapdeck-helper/package`: copy its contents to `/media/fat/Tapdeck-Helper` and run `sh /media/fat/Tapdeck-Helper/install.sh` on MiSTer. No separate AmigaVision, IGDB or TATE helper installation is needed. Older packages remain for historical reference and rollback; their install scripts are disabled.
 
 ## A note on artwork and metadata
 
 Tapdeck reads the metadata already available in your MiSTer library. It can download matching artwork to the Android device, so cover art becomes faster after its first use. If a game has no metadata or artwork, it stays visible and usable.
 
-The optional IGDB bridge runs on the MiSTer. It is only used when you choose to configure it, and its rating cache stays on the MiSTer.
+IGDB support runs inside Tapdeck Helper on the MiSTer. Rating lookups are used when you configure IGDB, and its rating cache stays on the MiSTer. Existing credentials and cached ratings are retained when migrating from the separate helper.
 
-With the updated helper installed, you can opt in to local artwork folders in **Settings → Artwork cache**. Tapdeck then fills missing artwork from `boxart` and `snaps` folders alongside your games. Existing phone-cached artwork stays first, followed by your local images, then Libretro. Jaguar and Jaguar CD check both system folders. Local artwork works without IGDB credentials; see the [folder layout and setup](./integrations/igdb-metadata-bridge/README.md#local-boxart-and-snaps).
+With Tapdeck Helper installed, you can opt in to local artwork folders in **Settings → Artwork cache**. Tapdeck then fills missing artwork from `boxart` and `snaps` folders alongside your games. Existing phone-cached artwork stays first, followed by your local images, then Libretro. Jaguar and Jaguar CD check both system folders. Local artwork works without IGDB credentials; see the [helper setup](./integrations/tapdeck-helper/README.md#features-and-existing-data).
+
+For `gamelist.xml`, Zaparoo must be configured to find the game folders (for example, `[scraper.gamelist_xml]` with `custom_path = '/media/usb0/games'`). **Sync library from Zaparoo** reads its current catalogue; **Full Refresh** rebuilds the index, imports XML metadata and reads the results into Tapdeck. Virtual core-launch entries are excluded from these selections because Zaparoo cannot index their IDs; real indexable systems remain selectable even with zero games.
+
+After a completely fresh installation, enter the MiSTer address, configure optional IGDB credentials and enable local artwork if wanted. Migration preserves existing helper credentials and saved Neo Geo BIOS profiles. If local artwork is enabled but missing after setup, toggle it off and on to reload the index; the underlying refresh issue is still under investigation.
 
 ## Development
 
@@ -114,6 +118,8 @@ The web preview is useful for layout checks. Test MiSTer connection, artwork ref
 
 ## Building an Android APK
 
+The current release is **1.0.5**. Update both the app and Tapdeck Helper when migrating from the separate helpers; the AmigaVision and TATE endpoints have moved to port 8184.
+
 Tapdeck releases contain source code only. You can build an Android APK in either of these ways:
 
 **Local Android build** — install Android Studio and the Android SDK, then run:
@@ -133,7 +139,7 @@ For private testing, use the `preview` profile instead.
 ## Project layout
 
 - `src/` — native app screens, components and library/launch logic.
-- `integrations/` — optional MiSTer-side helpers for AmigaVision and IGDB metadata.
+- `integrations/` — Tapdeck Helper source/installer and the retained separate helpers for rollback.
 - `tests/` — regression tests for library handling, artwork, playlists, discovery and launch routing.
 - `scripts/` — maintenance tools for sample content and artwork indexes.
 

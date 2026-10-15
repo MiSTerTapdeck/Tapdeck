@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.0.5 — 2026-10-15
+
+- Excluded Zaparoo virtual core-launch targets from library update selections, preventing invalid-system errors during refresh. Empty indexable systems remain available for scanning new games.
+- Made Tapdeck Helper the sole current installation package, disabled the old separate-helper installers, and replaced their installation instructions with migration/rollback guidance. Historical binaries and rollback support are retained.
+- Removed the obsolete PC artwork-server script/command and temporary card-artwork diagnostics. Aligned app, package and native Android display versions at 1.0.5; EAS remote build-number settings are unchanged.
+- Combined AmigaVision, IGDB ratings/local artwork/Neo Geo launching, and TATE metadata into one Tapdeck Helper on port 8184, with a backup-aware installer and rollback script. Existing credentials, caches and saved BIOS settings are retained. The updated helper and app must be used together.
+- Preserved the device-tested Neo Geo AES/MVS launch format: separate configuration identities, ROM index 1 and absolute SD/USB ROM paths.
 - Added automated GitHub validation for every push and pull request: dependency installation, type checking and tests.
 - Added contributor, security, issue-reporting and third-party-notice documentation, plus monthly Dependabot update checks.
 - Replaced the README gallery with current Tapdeck screenshots in numeric order.

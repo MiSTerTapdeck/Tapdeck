@@ -27,3 +27,19 @@ jobs:
         run: npm run typecheck
       - name: Run tests
         run: npm test
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: integrations/tapdeck-helper/go.mod
+          cache: false
+      - name: Test Tapdeck Helper
+        working-directory: integrations/tapdeck-helper
+        run: go test ./...
+      - name: Build MiSTer helper
+        working-directory: integrations/tapdeck-helper
+        env:
+          GOOS: linux
+          GOARCH: arm
+          GOARM: 7
+          CGO_ENABLED: 0
+        run: go build -buildvcs=false -o /tmp/tapdeck-helper .
