@@ -37,6 +37,7 @@
     <td align="center"><a href="./docs/screenshots/8.jpeg"><img src="./docs/screenshots/8.jpeg" width="210" alt="Tapdeck screenshot 8" /></a></td>
   </tr>
 </table>
+
 ## Your collection deserves better than a folder browser
 
 Tapdeck turns a MiSTer library into a tactile game binder. Browse cover art, screenshots and metadata; filter across systems and genres; make playlists; find something you have not played in years; then launch it on your MiSTer from the sofa.
