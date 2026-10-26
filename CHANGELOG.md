@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.0.6 — 2026-10-26
+
+- Added dated save-state launch choices and aligned save icons in game lists for nine tested console systems. Tapdeck Helper reads exact ROM save slots without changing save files. A game without matching slots launches normally. The updated app and helper are required together.
+- Added sorting by favourites and an optional favourites-first setting. Newly favourited games keep their list position until the next browse.
+- Added a Settings checklist to show or hide individual computer systems, with game counts. Hidden systems remain in the saved library.
+- Added core-only launch for computer systems, including the installed AmigaVision MGL for Amiga, and a hold-to-choose-core action when alternatives are available.
+- Added a double-click Windows launcher for local Development, Preview and Production APK builds. Preview and Production use the release APK variant; Production also runs the test suite.
+- Reduced delays in the Now Playing state after a game launches.
 ## 1.0.5 — 2026-10-15
 
 - Excluded Zaparoo virtual core-launch targets from library update selections, preventing invalid-system errors during refresh. Empty indexable systems remain available for scanning new games.

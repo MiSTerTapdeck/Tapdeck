@@ -133,3 +133,16 @@ skills-lock.json
 /assets/vhs-overlay-ch03.png
 /assets/vhs-overlay-noisy.png
 /assets/vhs-overlay.png
+
+# Local EAS signing credentials
+/credentials.json
+/credentials/
+
+# APKs built locally for testing
+/local-apks/
+# Local build notes and troubleshooting logs
+/LOCAL-PHONE-APK-BUILD.txt
+/android/autolink-error.txt
+/android/autolink.json
+/android/build-log.txt
+/android/settings-log.txt

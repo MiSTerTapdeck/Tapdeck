@@ -110,6 +110,8 @@ func newHandler(b *bridge, amiga *amigaVisionBridge, tate *orientationBridge, ar
 	mux.HandleFunc("/launch/neogeo", b.launchNeoGeo)
 	mux.HandleFunc("/launch/amigavision", amiga.launch)
 	mux.HandleFunc("/orientations", tate.orientations)
+	mux.HandleFunc("/savestates/index", saveStateIndexHandler("/media/fat/savestates"))
+	mux.HandleFunc("/savestates", saveStatesHandler("/media/fat/savestates"))
 	mux.HandleFunc("/artwork", artwork.index)
 	mux.HandleFunc("/artwork/file", artwork.image)
 	return cors(mux)
@@ -217,7 +219,7 @@ func (b *bridge) health(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c, err := loadConfig()
-	jsonReply(w, 200, map[string]any{"status": "ok", "service": "tapdeck-helper", "capabilities": []string{"igdb", "artwork", "neogeo", "amigavision", "tate"}, "configured": err == nil && c.ClientID != "" && c.ClientSecret != ""})
+	jsonReply(w, 200, map[string]any{"status": "ok", "service": "tapdeck-helper", "capabilities": []string{"igdb", "artwork", "neogeo", "amigavision", "tate", "savestates"}, "configured": err == nil && c.ClientID != "" && c.ClientSecret != ""})
 }
 func (b *bridge) configure(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

@@ -97,4 +97,42 @@ function remoteWebSocketUrl(value:string){return normaliseMiSTerRemoteUrl(value)
 function sendRemoteCommands(value:string,commands:string[]){return new Promise<void>((resolve,reject)=>{const socket=new WebSocket(remoteWebSocketUrl(value));const openTimeout=setTimeout(()=>{socket.close();reject(new Error('MiSTer Remote keyboard connection timed out.'));},4000);let index=0;const sendNext=()=>{if(index>=commands.length){clearTimeout(openTimeout);socket.close();resolve();return;}socket.send(commands[index++]);setTimeout(sendNext,180);};socket.onopen=()=>{clearTimeout(openTimeout);sendNext();};socket.onerror=()=>{clearTimeout(openTimeout);reject(new Error('MiSTer Remote could not send the C64 tape load command.'));};});}
 function startC64Tape(value:string){setTimeout(()=>{void sendRemoteCommands(value,c64TapeLoadCommands()).then(()=>{setTimeout(()=>{void sendRemoteCommands(value,c64RunCommands()).catch(()=>{});},3000);}).catch(()=>{});},2800);}
 function startSpectrumTape(value:string){setTimeout(()=>{void sendRemoteCommands(value,spectrumTapeLoadCommands()).catch(()=>{});},2800);}
-export async function launchMiSTerRemoteGame(value:string,game:LaunchGame):Promise<string>{if(!game.remoteFilePath)throw new Error('This game has no launch path in the MiSTer library.');const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),10000);try{const amigaVisionTitle=amigaVisionCanonicalTitle(game);if(amigaVisionTitle)return await launchAmigaVisionGame(value,amigaVisionTitle,controller.signal);const mglPath=mglLaunchPath(game);const path=mglPath??await resolveMountedUsbPath(value,game.remoteFilePath,controller.signal);const neoGeoMode=neoGeoLaunchMode(game);if(neoGeoMode){await launchNeoGeoGame(value,path,neoGeoMode,controller.signal);return path;}if(usesZaparooLauncher(game)){const zapScript=game.remotePath?.trim()||`**launch:${path}`;await launchZaparooGame(value,zapScript,controller.signal);return path;}const route=mglPath?'/launch':'/games/launch';const response=await fetch(`${normaliseMiSTerRemoteUrl(value)}${route}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path}),signal:controller.signal});if(!response.ok){const detail=(await response.text().catch(()=>'' )).trim();throw new Error(`MiSTer Remote could not launch the game (HTTP ${response.status})${detail?`: ${detail}`:''}`);}if(isC64TapeImage(game))startC64Tape(value);if(isSpectrumTapeImage(game))startSpectrumTape(value);return path;}catch(error){if(error instanceof DOMException&&error.name==='AbortError')throw new Error('MiSTer Remote timed out. Check that Remote is running on your MiSTer.');if(error instanceof TypeError)throw new Error('Could not reach the MiSTer launch service.');throw error;}finally{clearTimeout(timer);}}
+export async function launchMiSTerRemoteGame(value:string,game:LaunchGame,rbf?:string):Promise<string>{if(!game.remoteFilePath)throw new Error('This game has no launch path in the MiSTer library.');const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),10000);try{const amigaVisionTitle=amigaVisionCanonicalTitle(game);if(amigaVisionTitle)return await launchAmigaVisionGame(value,amigaVisionTitle,controller.signal);const mglPath=mglLaunchPath(game);const path=mglPath??await resolveMountedUsbPath(value,game.remoteFilePath,controller.signal);const neoGeoMode=neoGeoLaunchMode(game);if(neoGeoMode){await launchNeoGeoGame(value,path,neoGeoMode,controller.signal);return path;}if(usesZaparooLauncher(game)){const zapScript=game.remotePath?.trim()||`**launch:${path}`;await launchZaparooGame(value,zapScript,controller.signal);return path;}const route=mglPath?'/launch':'/games/launch';const response=await fetch(`${normaliseMiSTerRemoteUrl(value)}${route}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(rbf?{path,rbf}:{path}),signal:controller.signal});if(!response.ok){const detail=(await response.text().catch(()=>'' )).trim();throw new Error(`MiSTer Remote could not launch the game (HTTP ${response.status})${detail?`: ${detail}`:''}`);}if(isC64TapeImage(game))startC64Tape(value);if(isSpectrumTapeImage(game))startSpectrumTape(value);return path;}catch(error){if(error instanceof DOMException&&error.name==='AbortError')throw new Error('MiSTer Remote timed out. Check that Remote is running on your MiSTer.');if(error instanceof TypeError)throw new Error('Could not reach the MiSTer launch service.');throw error;}finally{clearTimeout(timer);}}
+
+export type RemoteCoreChoice={rbf:string;name:string;default:boolean};
+export function supportsRemoteCoreChoice(game:LaunchGame){return !!game.remoteSystemId&&!!game.remoteFilePath&&!/\.(mra|mgl)$/i.test(game.remoteFilePath)&&!mglLaunchPath(game)&&!neoGeoLaunchMode(game)&&!usesZaparooLauncher(game)&&!amigaVisionCanonicalTitle(game);}
+export async function readRemoteCoreChoices(host:string,game:LaunchGame):Promise<RemoteCoreChoice[]>{
+ if(!supportsRemoteCoreChoice(game))return [];
+ const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),5000);
+ try{
+  const base=normaliseMiSTerRemoteUrl(host);
+  const response=await fetch(`${base}/systems/${encodeURIComponent(game.remoteSystemId!)}/rbfs`,{signal:controller.signal});
+  if(!response.ok)return [];
+  const data:unknown=await response.json();
+  if(!Array.isArray(data))return [];
+  return data.filter((item):item is RemoteCoreChoice=>!!item&&typeof item.rbf==='string'&&!!item.rbf&&typeof item.name==='string'&&typeof item.default==='boolean');
+ }finally{clearTimeout(timer);}
+}
+
+export async function launchComputerCore(value:string,systemId:string):Promise<void>{
+ const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),8000);
+ try{
+  const base=normaliseMiSTerRemoteUrl(value);
+  // Verify the exact ID against Remote before asking it to launch a core.
+  const available=await fetch(`${base}/systems`,{signal:controller.signal});
+  if(!available.ok)throw new Error(`Could not read installed cores (HTTP ${available.status}).`);
+  const systems:unknown=await available.json();
+  if(!Array.isArray(systems)||!systems.some(item=>item?.id===systemId&&typeof item.category==='string'&&item.category.toLowerCase().replace(/^_/, '')==='computer'))throw new Error('This computer core was not found on your MiSTer.');
+  const response=await fetch(`${base}/systems/${encodeURIComponent(systemId)}`,{method:'POST',signal:controller.signal});
+  if(!response.ok)throw new Error(`MiSTer Remote could not launch ${systemId} (HTTP ${response.status}).`);
+ }finally{clearTimeout(timer);}
+}
+
+// Launch the user's AmigaVision MGL so Minimig uses its saved Amiga configuration.
+export async function launchAmigaVisionCore(value:string):Promise<void>{
+ const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),8000);
+ try{
+  const response=await fetch(`${normaliseMiSTerRemoteUrl(value)}/launch`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path:'/media/fat/_Computer/Amiga.mgl'}),signal:controller.signal});
+  if(!response.ok)throw new Error(`MiSTer Remote could not launch AmigaVision (HTTP ${response.status}).`);
+ }finally{clearTimeout(timer);}
+}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {filterGames,genresForCategory,isVintage,parseSaved,searchGames,systemsForCategory} from '../src/domain/library.ts';
+import {filterGames,genresForCategory,isVintage,parseSaved,searchGames,systemsForCategory,visibleGames} from '../src/domain/library.ts';
 import {cardGenre,discoverGenreKey,primaryGenre} from '../src/domain/genre.ts';
 import {parsePlaylists,reorderIds} from '../src/domain/playlists.ts';
 import {chooseIgdbRating} from '../src/domain/igdbMatch.ts';
@@ -28,6 +28,12 @@ const seed:Game[]=[
  {id:'b',title:'Turrican II',system:'Amiga',category:'Computers',year:1991,genre:'Action',developer:'Factor 5',players:'1',description:''},
  {id:'c',title:'Modern game',system:'SNES',category:'Consoles',year:2026,genre:'Action',developer:'Studio',players:'1',description:''},
 ];
+test('hidden computer systems disappear from browsing without deleting their records',()=>{
+ const visible=visibleGames(seed,['Amiga']);
+ assert.deepEqual(visible.map(game=>game.id),['a','c']);
+ assert.equal(seed.length,3);
+ assert.equal(visibleGames(seed,[]),seed);
+});
 test('Zaparoo launch records remain visible regardless of their media extension',()=>{
  for(const extension of ['cue','m3u','vhd','bin','chd']){
   assert.equal(isPlayableGame({id:extension,title:'Example Game',system:'Future Console',category:'Consoles',year:null,genre:'Not listed',developer:'Not listed',players:'Not listed',description:'',remoteFilePath:`/media/usb0/games/Future Console/Example Game.${extension}`} as Game),true);

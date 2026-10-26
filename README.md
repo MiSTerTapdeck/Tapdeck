@@ -89,6 +89,8 @@ Install only `integrations/tapdeck-helper/package`: copy its contents to `/media
 
 ## A note on artwork and metadata
 
+Tapdeck can offer dated save-state choices on Launch for nine tested console systems, using the updated Tapdeck Helper. This reads existing save states rather than battery-backed in-game saves. See [save-state setup and testing limits](./integrations/tapdeck-helper/README.md#save-state-launch-choices).
+
 Tapdeck reads the metadata already available in your MiSTer library. It can download matching artwork to the Android device, so cover art becomes faster after its first use. If a game has no metadata or artwork, it stays visible and usable.
 
 IGDB support runs inside Tapdeck Helper on the MiSTer. Rating lookups are used when you configure IGDB, and its rating cache stays on the MiSTer. Existing credentials and cached ratings are retained when migrating from the separate helper.
@@ -119,7 +121,7 @@ The web preview is useful for layout checks. Test MiSTer connection, artwork ref
 
 ## Building an Android APK
 
-The current release is **1.0.5**. Update both the app and Tapdeck Helper when migrating from the separate helpers; the AmigaVision and TATE endpoints have moved to port 8184.
+The current release is **1.0.6**. Update both the app and Tapdeck Helper for save-state choices and list indicators. The unified helper uses port 8184.
 
 Tapdeck releases contain source code only. You can build an Android APK in either of these ways:
 
@@ -136,6 +138,8 @@ npx eas-cli build --platform android --profile release
 ```
 
 For private testing, use the `preview` profile instead.
+
+On the maintainer's Windows machine, `BUILD TAPDECK.cmd` offers Development, Preview and Production local builds. It uses a dedicated short build path and local signing credentials; those private credentials are not included in this repository.
 
 ## Project layout
 

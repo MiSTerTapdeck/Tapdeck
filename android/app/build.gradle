@@ -92,8 +92,8 @@ android {
         applicationId 'com.anonymous.tapdeck'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0.5"
+        versionCode 2
+        versionName "1.0.6"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
@@ -108,6 +108,11 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+            // Local build launcher can install the dev client beside the signed app.
+            if ((findProperty('tapdeckSeparateDev') ?: 'false').toBoolean()) {
+                applicationIdSuffix '.dev'
+                versionNameSuffix '-dev'
+            }
         }
         release {
             // Caution! In production, you need to generate your own keystore file.

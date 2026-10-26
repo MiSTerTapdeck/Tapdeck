@@ -1,7 +1,8 @@
 import Svg,{Path,Circle,Rect} from 'react-native-svg';
-export type IconName='search'|'back'|'close'|'bookmark'|'library'|'playlist'|'compass'|'settings'|'sort'|'play'|'check'|'computer'|'gamepad'|'info'|'arrow'|'plus'|'up'|'down'|'trash'|'pencil'|'dice'|'sun'|'moon';
+export type IconName='floppy'|'search'|'back'|'close'|'bookmark'|'library'|'playlist'|'compass'|'settings'|'sort'|'play'|'check'|'computer'|'gamepad'|'info'|'arrow'|'plus'|'up'|'down'|'trash'|'pencil'|'dice'|'sun'|'moon';
 export function Icon({name,size=22,color='#28251F',filled=false}:{name:IconName;size?:number;color?:string;filled?:boolean}) {
  const paths:Partial<Record<IconName,string>>={
+ floppy:'M4 3h13l4 4v14H3V3ZM7 3v7h10V3M7 21v-7h10v7M14 5v3',
  search:'m16 16 4.5 4.5',back:'m14 5-7 7 7 7',close:'m6 6 12 12M6 18 18 6',
  bookmark:'M6 4h12v17l-6-4-6 4Z',library:'M5 6h14v15H5ZM9 6V3h6v3M8 10h8',
  playlist:'M8 6h12M8 12h12M8 18h12M3 6h.1M3 12h.1M3 18h.1',

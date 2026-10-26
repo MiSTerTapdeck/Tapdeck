@@ -2,8 +2,62 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createLocalArtworkLookup,parseLocalArtworkManifest} from '../src/domain/localArtwork.ts';
 import {parseArtworkDirectory,parseArtworkDirectoryInChunks,matchLibretroFilename,matchLibretroFilenameInChunks,libretroSystemsFor,libretroArtworkIdentity,artworkCacheFilename,libretroArtworkUrl} from '../src/domain/libretroNaming.ts';
-import {amigaVisionCanonicalTitle,c64RunCommands,c64TapeLoadCommands,isC64TapeImage,isSpectrumTapeImage,launchMiSTerRemoteGame,launchRoutesFor,mglLaunchPath,neoGeoLaunchMode,spectrumTapeLoadCommands,usbMountCandidates,usesZaparooLauncher} from '../src/domain/misterRemote.ts';
+import {launchAmigaVisionCore,launchComputerCore,readRemoteCoreChoices,supportsRemoteCoreChoice,amigaVisionCanonicalTitle,c64RunCommands,c64TapeLoadCommands,isC64TapeImage,isSpectrumTapeImage,launchMiSTerRemoteGame,launchRoutesFor,mglLaunchPath,neoGeoLaunchMode,spectrumTapeLoadCommands,usbMountCandidates,usesZaparooLauncher} from '../src/domain/misterRemote.ts';
 import {addTateMetadata} from '../src/domain/tate.ts';
+import {hasIndexedSave,playingMatchesSave,readSaveStates,restoreSaveAfterLaunch,supportsSaveStates} from '../src/domain/savestates.ts';
+
+test('computer core starts through Remote with no game path',async()=>{
+ const original=globalThis.fetch;const calls:{url:string;method:string|undefined}[]=[];
+ globalThis.fetch=async(input,init)=>{calls.push({url:String(input),method:init?.method});return new Response(calls.length===1?JSON.stringify([{id:'Amiga',name:'Amiga',category:'Computer'}]):'');};
+ try{await launchComputerCore('mister','Amiga');assert.deepEqual(calls,[{url:'http://mister:8182/api/systems',method:undefined},{url:'http://mister:8182/api/systems/Amiga',method:'POST'}]);}finally{globalThis.fetch=original;}
+});
+
+test('Amiga core button launches the installed AmigaVision MGL',async()=>{
+ const original=globalThis.fetch;const calls:{url:string;method:string|undefined;body:string|undefined}[]=[];
+ globalThis.fetch=async(input,init)=>{calls.push({url:String(input),method:init?.method,body:String(init?.body)});return new Response('');};
+ try{await launchAmigaVisionCore('mister');assert.deepEqual(calls,[{url:'http://mister:8182/api/launch',method:'POST',body:JSON.stringify({path:'/media/fat/_Computer/Amiga.mgl'})}]);}finally{globalThis.fetch=original;}
+});
+test('alternate cores use Remote choices and selected core in the launch request',async()=>{
+ const original=globalThis.fetch;const game={title:'Contra',system:'NES',remoteSystemId:'NES',remoteFilePath:'/media/fat/games/NES/Contra.nes'} as any;const calls:any[]=[];
+ globalThis.fetch=async(input,init)=>{calls.push({url:String(input),body:init?.body});if(String(input).endsWith('/systems/NES/rbfs'))return new Response(JSON.stringify([{rbf:'_Console/NES',name:'NES',default:true},{rbf:'_Console/NES_Alt',name:'NES Alt',default:false}]));return new Response('');};
+ try{const cores=await readRemoteCoreChoices('mister',game);assert.equal(cores.length,2);await launchMiSTerRemoteGame('mister',game,cores[1].rbf);assert.deepEqual(JSON.parse(String(calls[1].body)),{path:game.remoteFilePath,rbf:'_Console/NES_Alt'});assert.equal(supportsRemoteCoreChoice({...game,remoteFilePath:'/media/fat/_Arcade/Test.mra'}),false);assert.equal(supportsRemoteCoreChoice({...game,remoteSystemId:'NeoGeo'}),false);}finally{globalThis.fetch=original;}
+});
+
+test('save indicators match the exact ROM and system, including core aliases',()=>{
+ const game={remoteSystemId:'MasterSystem',remoteFilePath:'/media/usb0/games/SMS/After Burner (World).sms'};
+ const index={SMS:['After Burner (World)']};
+ assert.equal(hasIndexedSave(game,index),true);
+ assert.equal(hasIndexedSave({...game,remoteSystemId:'NES'},index),false);
+ assert.equal(hasIndexedSave({...game,remoteFilePath:'/media/usb0/games/SMS/After Burner (Japan).sms'},index),false);
+ assert.equal(hasIndexedSave({...game,remoteFilePath:'/media/usb0/games/SMS/After Burner (World).mgl'},index),false);
+ assert.equal(hasIndexedSave(game,{}),false);
+});
+
+test('save state detection is scoped to tested systems and exact ROM paths',async()=>{
+ const game={remoteSystemId:'SNES',remoteFilePath:'/media/usb0/games/SNES/Aladdin (USA).sfc'} as any;
+ assert.equal(supportsSaveStates(game),true);
+ assert.equal(supportsSaveStates({...game,remoteSystemId:'Genesis'}),false);
+ assert.equal(supportsSaveStates({...game,remoteFilePath:'/media/fat/Test.mgl'}),false);
+ assert.equal(playingMatchesSave(game,game.remoteFilePath,{system:'SNES',gameName:'Aladdin (USA)'}),true);
+ assert.equal(playingMatchesSave(game,game.remoteFilePath,{system:'SNES',gameName:'Aladdin (Europe)'}),false);
+ assert.equal(playingMatchesSave(game,game.remoteFilePath,{system:'NES',gameName:'Aladdin (USA)'}),false);
+ const original=globalThis.fetch;
+ globalThis.fetch=async(input,init)=>{assert.equal(String(input),'http://mister:8184/savestates');assert.deepEqual(JSON.parse(String(init?.body)),{system:'SNES',path:game.remoteFilePath});return new Response(JSON.stringify({states:[{slot:1,updatedAt:'2026-10-16T18:34:00Z'},{slot:9,updatedAt:'bad'}]}));};
+ try{assert.equal((await readSaveStates('mister',game)).length,1);}finally{globalThis.fetch=original;}
+});
+
+test('restore waits for the matching game and settling period, and respects cancellation',async()=>{
+ const original=globalThis.fetch;const game={remoteSystemId:'SNES',remoteFilePath:'/media/fat/games/SNES/Aladdin (USA).sfc'} as any;
+ let time=0;let posts=0;let reads=0;let cancel=false;
+ globalThis.fetch=async(input,init)=>{if(init?.method==='POST'){posts++;assert.equal(String(input),'http://mister:8182/api/controls/keyboard/load_state');assert.ok(time>=8000);return new Response('');}reads++;return new Response(JSON.stringify({system:'SNES',gameName:reads<3?'Other game':'Aladdin (USA)'}));};
+ const options={now:()=>time,wait:async(ms:number)=>{time+=ms;}};
+ try{
+  await restoreSaveAfterLaunch('mister',game,game.remoteFilePath,1,()=>cancel,options);assert.equal(posts,1);
+  cancel=true;await restoreSaveAfterLaunch('mister',game,game.remoteFilePath,1,()=>cancel,options);assert.equal(posts,1);
+  cancel=false;time=0;globalThis.fetch=async()=>new Response(JSON.stringify({system:'NES',gameName:'Aladdin (USA)'}));
+  await assert.rejects(()=>restoreSaveAfterLaunch('mister',game,game.remoteFilePath,1,()=>false,{...options,timeoutMs:2000}),/identity could not be confirmed/);
+ }finally{globalThis.fetch=original;}
+});
 
 test('AmigaVision and Neo Geo launch requests share Tapdeck Helper without changing their payloads',async()=>{
  const originalFetch=globalThis.fetch;

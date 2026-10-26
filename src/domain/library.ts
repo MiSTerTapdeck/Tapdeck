@@ -1,6 +1,11 @@
 import type { Category, Game } from '../data/library';
 import {primaryGenre} from './genre.ts';
-export type SortOrder='title'|'year'|'oldest'|'rating'|'added';
+export type SortOrder='title'|'year'|'oldest'|'rating'|'added'|'favourites';
+export function visibleGames(games:Game[],hiddenComputers:string[]):Game[]{
+  if(!hiddenComputers.length)return games;
+  const hidden=new Set(hiddenComputers);
+  return games.filter(game=>game.category!=='Computers'||!hidden.has(game.system));
+}
 export function systemsForCategory(games:Game[],category:Category):string[] {
   if(category!=='Consoles'&&category!=='Computers')return [];
   return [...new Set(games.filter(g=>g.category===category).map(g=>g.system))];
@@ -20,6 +25,7 @@ export function filterGames(games:Game[], query:string, category:Category, sort:
   // drill-down filters, but the Arcade picker item must not narrow to only
   // records whose individual system happens to be named Arcade.
   const result=games.filter(g=>{const systemMatches=!system||(category==='Arcade'&&system==='Arcade')||g.system===system;return (category==='All'||g.category===category)&&systemMatches&&(!genre||primaryGenre(g.genre)===genre)&&(!savedOnly||saved.includes(g.id))&&matchesSearchTerms(g,terms);});
+  if(sort==='favourites'){const ids=new Set(saved);result.sort((a,b)=>Number(ids.has(b.id))-Number(ids.has(a.id))||a.title.localeCompare(b.title));}
   if(sort==='title') result.sort((a,b)=>a.title.localeCompare(b.title));
   if(sort==='year') result.sort((a,b)=>(b.year??-1)-(a.year??-1)||a.title.localeCompare(b.title));
   if(sort==='oldest') result.sort((a,b)=>(a.year??Infinity)-(b.year??Infinity)||a.title.localeCompare(b.title));
@@ -27,9 +33,10 @@ export function filterGames(games:Game[], query:string, category:Category, sort:
   if(sort==='added') result.sort((a,b)=>(b.libraryAddedAt??0)-(a.libraryAddedAt??0)||a.title.localeCompare(b.title));
   return result;
 }
-export function searchGames(games:Game[],query:string,sort:SortOrder='title'):Game[]{
+export function searchGames(games:Game[],query:string,sort:SortOrder='title',saved:string[]=[]):Game[]{
   const terms=query.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
   const result=games.filter(game=>matchesSearchTerms(game,terms));
+  if(sort==='favourites'){const ids=new Set(saved);result.sort((a,b)=>Number(ids.has(b.id))-Number(ids.has(a.id))||a.title.localeCompare(b.title));}
   if(sort==='title')result.sort((a,b)=>a.title.localeCompare(b.title));
   if(sort==='year')result.sort((a,b)=>(b.year??-1)-(a.year??-1)||a.title.localeCompare(b.title));
   if(sort==='oldest')result.sort((a,b)=>(a.year??Infinity)-(b.year??Infinity)||a.title.localeCompare(b.title));

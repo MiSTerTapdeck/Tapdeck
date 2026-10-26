@@ -49,6 +49,14 @@ Health reports `service: "tapdeck-helper"`, the existing IGDB `configured` flag,
 | `POST /launch/neogeo` | Select saved AES/MVS identity and launch through Remote |
 | `POST /launch/amigavision` | Queue an AmigaVision title and launch through Remote |
 | `GET /orientations` | Read TATE metadata |
+| `POST /savestates` | Read matching save-state slots and modification dates for a supported game |
+| `GET /savestates/index` | Read filenames of supported save states for list indicators |
+
+## Save-state launch choices
+
+Tapdeck 1.0.6 can offer dated save-state choices when Launch is tapped for SNES, Master System, NES, GBA, PSX, Game Gear, Game Boy, Game Boy Color and Virtual Boy. Install the updated helper binary as well as the updated app. The helper reads slots 1–4 from `/media/fat/savestates`, using each core's directory and the exact ROM filename without its extension. It never writes, renames or deletes a save. MGL and archive paths are excluded because their filenames need not identify the actual ROM.
+
+Normal launch remains available while checking or if the helper is absent/outdated. A missing exact match launches normally. Selecting a save uses the existing game launch, then waits for MiSTer Remote to report the expected system/game twice and at least eight seconds to pass. It sends the restore command once; another Tapdeck launch, End action or app unmount cancels a pending restore. A 45-second limit leaves the game running normally if its identity cannot be confirmed. Remote's active-game report does not prove FPGA readiness, and a successful keyboard request does not confirm restoration. Slot 1 was manually tested on all nine systems; automatic timing and other slots need physical-device validation. Existing helper install/rollback commands apply.
 
 As with the previous helpers, endpoints are unauthenticated HTTP available to the LAN. Use on a trusted home network; do not expose the port to the internet. Only IGDB lookups contact Twitch/IGDB externally. Secrets are not returned to the app.
 
@@ -76,3 +84,5 @@ GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0 go build -buildvcs=false -o package/
 `go test ./...` also tests the real install/rollback logic against temporary storage and a fake process manager: migration, failed health checks, repeated installs, fresh installs, malformed/manual startup entries, preservation of unrelated startup lines and credentials, and backup boundaries. The shell scripts only locate the binary and invoke its installer/rollback commands. No Python or Bash dependency is needed for these tests.
 
 Before release, test on a MiSTer: both AES/MVS launches, AmigaVision, existing IGDB credentials/rating cache, local boxart/snaps, TATE after refresh, reboot startup and rollback. Automated checks cannot verify FPGA ROM loading.
+
+Save-state list indicators use GET /savestates/index: one filename-only index for the nine supported systems. No save contents are read. The app refreshes immediately when returning to a list or to the app, every three seconds while a game is running, and every minute otherwise; install the updated helper package to enable the red floppy indicator.
