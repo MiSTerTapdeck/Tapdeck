@@ -56,6 +56,7 @@ Tapdeck does not mount, unmount, disable, format or alter MiSTer storage. Its US
 
 - **A library you can actually browse** — list and three-column card views, fast search, system and genre filters, sorting, favourites and Last Played.
 - **Make your own shelves** — create playlists, add games in batches, and put together a queue for any mood or hardware setup.
+- **Favourites and save states** — sort or always show favourites first; a floppy icon marks supported games with save states, and Launch offers dated save choices when the updated Tapdeck Helper is installed.
 - **Artwork that gets out of the way** — on-device artwork caching, Libretro thumbnail support and graceful fallbacks when a title has no art.
 - **Discover what to play next** — recommendations based on your library, platform groupings and cached ratings. Closely related labels such as Brawler and Beat ’em Up can recommend one another without being merged in the library.
 - **Metadata where it helps** — game details from your MiSTer library, with optional IGDB ratings for titles that have no rating in their gamelist.
