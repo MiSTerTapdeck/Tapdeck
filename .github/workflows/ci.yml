@@ -28,7 +28,7 @@ jobs:
       - name: Run tests
         run: npm test
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: integrations/tapdeck-helper/go.mod
           cache: false
